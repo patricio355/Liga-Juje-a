@@ -1,1 +1,0 @@
-2025-11-28T00:28:06.445-03:00  WARN 293320 --- [com.patricio.springboot.app] [HikariPool-1:housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Thread starvation or clock leap detected (housekeeper delta=2h28m32s25ms800ns).

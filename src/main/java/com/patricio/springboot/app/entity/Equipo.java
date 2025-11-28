@@ -29,7 +29,7 @@ public class Equipo {
     private String fechaCreacion;
     private String estado;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "cancha_id")
     private Cancha localia;
 
