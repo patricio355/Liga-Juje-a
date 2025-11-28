@@ -23,8 +23,8 @@ VALUES
 INSERT INTO usuarios (id, tipo_usuario, nombre, email, dni, telefono, domicilio, contrasenia)
 VALUES
     (1, 'Encargado', 'Ramiro Castaño', 'ramiro@liga.com', '40111222', '3885123456', 'SSJ', '123'),
-    (2, 'Administrador', 'Sergio Villalba', 'sergio@liga.com', '38999888', '3885123499', 'Palpalá', '123'),
-    (3, 'Arbitro', 'Leonardo Cabrera', 'leo@liga.com', '41222111', '3884121122', 'El Carmen', '123'),
+    (2, 'Encargado', 'Sergio Villalba', 'sergio@liga.com', '38999888', '3885123499', 'Palpalá', '123'),
+    (3, 'Encargado', 'Leonardo Cabrera', 'leo@liga.com', '41222111', '3884121122', 'El Carmen', '123'),
     (4, 'Encargado', 'Diego Benítez', 'diego@liga.com', '37555777', '3884556677', 'San Salvador', '123');
 
 
