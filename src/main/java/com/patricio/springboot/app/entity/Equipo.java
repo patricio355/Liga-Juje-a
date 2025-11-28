@@ -20,7 +20,9 @@ public class Equipo {
     @OneToMany(mappedBy = "equipo", cascade = CascadeType.ALL)
     private List<Jugador> jugadores;
 
-    @OneToOne(cascade = CascadeType.ALL)
+
+    @OneToOne
+    @JoinColumn(name = "encargado_id")
     private Encargado encargado;
 
     private String escudo;
