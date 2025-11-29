@@ -16,7 +16,6 @@ public class Cancha {
     private Long id;
     private String nombre;
     private String ubicacion;
-
     private byte habilitacionPdf;
     private String estado;
     private String fotoUrl;

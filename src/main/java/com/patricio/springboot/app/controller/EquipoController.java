@@ -44,8 +44,11 @@ public class EquipoController {
                                     array = @ArraySchema(schema = @Schema(implementation = Equipo.class))))
             })
     public ResponseEntity<List<EquipoDTO>> listar() {
-        log.info("Listando envios...");
+        log.info("Listando equipos...");
         List<EquipoDTO> lista = equipoService.listarEquipos() ;
         return ResponseEntity.ok(lista);
     }
+
+
+
 }
