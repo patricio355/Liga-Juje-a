@@ -12,9 +12,9 @@ VALUES
 -- ================================================
 INSERT INTO canchas (id, nombre, ubicacion, habilitacion_pdf, valor_entrada, estado, foto_url)
 VALUES
-    (1, 'Cancha Municipal 1', 'San Salvador de Jujuy', 0, 500, 'HABILITADA', NULL),
-    (2, 'Cancha Municipal 2', 'Palpalá', 1, 600, 'HABILITADA', NULL),
-    (3, 'Cancha La Tablada', 'Los Perales', 0, 700, 'HABILITADA', NULL);
+    (1, 'Cancha Municipal 1', 'San Salvador de Jujuy', 0, 500, true, NULL),
+    (2, 'Cancha Municipal 2', 'Palpalá', 1, 600, true, NULL),
+    (3, 'Cancha La Tablada', 'Los Perales', 0, 700, true, NULL);
 
 
 -- ================================================
@@ -30,7 +30,7 @@ VALUES
 
 INSERT INTO equipos (id, nombre, localidad, escudo, camiseta_titular, camiseta_suplente, fecha_creacion, estado, cancha_id, zona_id, encargado_id)
 VALUES
-    (1, 'Atlético Bulón', 'San Salvador', 'https://bulon.com/escudos/atletico.png', 'Rojo', 'Blanco', '2024-10-01', 'ACTIVO', 1, 1, 1),
-    (2, 'Los Matadores', 'Palpalá', 'https://bulon.com/escudos/matadores.png', 'Azul', 'Negro', '2024-09-15', 'ACTIVO', 2, 1, 2),
-    (3, 'San Martín FC', 'El Carmen', 'https://bulon.com/escudos/sanmartin.png', 'Verde', 'Blanco', '2024-07-20', 'ACTIVO', 3, 2, 3),
-    (4, 'Juventud Unida', 'SSJ', 'https://bulon.com/escudos/juventud.png', 'Amarillo', 'Negro', '2024-06-10', 'ACTIVO', 1, 2, 4);
+    (1, 'Atlético Bulón', 'San Salvador', 'https://bulon.com/escudos/atletico.png', 'Rojo', 'Blanco', '2024-10-01', true, 1, 1, 1),
+    (2, 'Los Matadores', 'Palpalá', 'https://bulon.com/escudos/matadores.png', 'Azul', 'Negro', '2024-09-15', true, 2, 1, 2),
+    (3, 'San Martín FC', 'El Carmen', 'https://bulon.com/escudos/sanmartin.png', 'Verde', 'Blanco', '2024-07-20', true, 3, 2, 3),
+    (4, 'Juventud Unida', 'SSJ', 'https://bulon.com/escudos/juventud.png', 'Amarillo', 'Negro', '2024-06-10', true, 1, 2, 4);

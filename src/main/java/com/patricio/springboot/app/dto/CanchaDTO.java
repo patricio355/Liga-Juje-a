@@ -15,7 +15,7 @@ public class CanchaDTO {
     private String nombre;
     private String ubicacion;
     private byte habilitacionPdf;
-    private String estado;
+    private Boolean estado;
     private String fotoUrl;
     private int valorEntrada;
 }

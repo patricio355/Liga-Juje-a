@@ -2,8 +2,12 @@ package com.patricio.springboot.app.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,20 +26,23 @@ public class Equipo {
 
 
     @OneToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "encargado_id")
     private Encargado encargado;
 
     private String escudo;
     private String camisetaTitular;
     private String camisetaSuplente;
-    private String fechaCreacion;
-    private String estado;
+    private LocalDate fechaCreacion;
+    private boolean estado;
 
     @ManyToOne
-    @JoinColumn(name = "cancha_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JoinColumn(name = "cancha_id",nullable = true)
     private Cancha localia;
 
     @ManyToOne
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "zona_id")
     private Zona zona;
 

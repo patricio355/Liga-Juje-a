@@ -15,13 +15,23 @@ public final class EquipoMapper {
         dto.setEscudo(e.getEscudo());
         dto.setCamisetaTitular(e.getCamisetaTitular());
         dto.setCamisetaSuplente(e.getCamisetaSuplente());
-        dto.setEstado(e.getEstado());
-        dto.setFechaCreacion(e.getFechaCreacion());
-
-        dto.setEncargadoNombre(e.getEncargado().getNombre());
-
-        dto.setZonaId(e.getZona().getId());
+        dto.setEstado(e.isEstado());
+        dto.setFechaCreacion(e.getFechaCreacion().toString());
+        dto.setZonaId(e.getZona() != null ? e.getZona().getId() : null);
+        dto.setCanchaId(e.getLocalia() != null ? e.getLocalia().getId() : null);
+        dto.setEncargadoId(e.getEncargado() != null ? e.getEncargado().getId() : null);
 
         return dto;
+    }
+
+    public static Equipo toEntity(EquipoDTO dto) {
+        Equipo e = new Equipo();
+        e.setNombre(dto.getNombre());
+        e.setLocalidad(dto.getLocalidad());
+        e.setEscudo(dto.getEscudo());
+        e.setCamisetaTitular(dto.getCamisetaTitular());
+        e.setCamisetaSuplente(dto.getCamisetaSuplente());
+        e.setEstado(dto.getEstado());
+        return e;
     }
 }
