@@ -8,6 +8,7 @@ import java.util.Optional;
 import com.patricio.springboot.app.dto.EquipoDTO;
 import com.patricio.springboot.app.entity.Equipo;
 import com.patricio.springboot.app.service.EquipoService;
+import jakarta.persistence.Id;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +37,7 @@ public class EquipoController {
     }
 
     //listar todos los equipos
-    @GetMapping
+    @GetMapping("/todos")
     @Operation(summary = "Listar todos los equipos",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
@@ -49,6 +50,45 @@ public class EquipoController {
         return ResponseEntity.ok(lista);
     }
 
+    //listar todos los equipos activos
+    @GetMapping
+    @Operation(summary = "Listar todos los equipos activos",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
+                            content = @Content(mediaType = "application/json",
+                                    array = @ArraySchema(schema = @Schema(implementation = Equipo.class))))
+            })
+    public ResponseEntity<List<EquipoDTO>> listarActivos() {
+        log.info("Listando equipos...");
+        List<EquipoDTO> lista = equipoService.listarEquiposActivos() ;
+        return ResponseEntity.ok(lista);
+    }
 
+    @PostMapping
+    @Operation()
+    public ResponseEntity<EquipoDTO> crearEquipo(@Valid @RequestBody EquipoDTO equipo) {
+        log.info("Creando equipo: {}", equipo);
+        EquipoDTO entity = equipoService.crearEquipo(equipo);
+        return ResponseEntity.ok().body(entity);
+    }
+
+
+
+    @DeleteMapping("/{id}")
+    @Operation()
+    public ResponseEntity<EquipoDTO> eliminarEquipo(@PathVariable Long id) {
+        log.info("Eliminando equipo con id: {}", id);
+        EquipoDTO entity = equipoService.eliminarEquipo(id);
+        return ResponseEntity.ok().body(entity);
+    }
+
+
+    @PutMapping("/{id}")
+    @Operation()
+    public ResponseEntity<EquipoDTO> editarEquipo(@Valid @RequestBody EquipoDTO equipo, @PathVariable Long id) {
+        log.info("Editando equipo con id: {}", id);
+        EquipoDTO entity = equipoService.editarEquipo(id, equipo);
+        return ResponseEntity.ok().body(entity);
+    }
 
 }

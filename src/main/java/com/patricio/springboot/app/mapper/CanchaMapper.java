@@ -11,7 +11,7 @@ public class CanchaMapper {
         CanchaDTO dto = new CanchaDTO();
         dto.setId(c.getId());
         dto.setNombre(c.getNombre());
-        dto.setEstado(c.getEstado());
+        dto.setEstado(c.isEstado());
         dto.setUbicacion(c.getUbicacion());
         dto.setFotoUrl(c.getFotoUrl());
         dto.setValorEntrada(c.getValorEntrada());

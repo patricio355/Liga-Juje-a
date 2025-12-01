@@ -36,4 +36,12 @@ public class CanchaService {
         return CanchaMapper.toDTO(guardado);
     }
 
+    public void eliminarCancha(Long id) {
+        Cancha cancha = canchaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("No existe la cancha"));
+
+        cancha.setEstado(false);
+        canchaRepository.save(cancha);
+    }
+
 }

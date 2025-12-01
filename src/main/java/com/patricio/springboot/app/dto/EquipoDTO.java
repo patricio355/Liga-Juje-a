@@ -1,5 +1,7 @@
 package com.patricio.springboot.app.dto;
 
+import com.patricio.springboot.app.entity.Encargado;
+import com.patricio.springboot.app.entity.Zona;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,9 +17,10 @@ public class EquipoDTO {
     private String escudo;
     private String camisetaTitular;
     private String camisetaSuplente;
-    private String estado;
+    private Boolean estado;
     private String fechaCreacion;
 
-    private String encargadoNombre;
     private Long zonaId;
+    private Long canchaId;
+    private Long encargadoId;
 }
