@@ -20,12 +20,12 @@ VALUES
 -- ================================================
 -- 3) ENCARGADOS (Usuarios con tipo Encargado)
 -- ================================================
-INSERT INTO usuarios (id, tipo_usuario, nombre, email, dni, telefono, domicilio, contrasenia)
+INSERT INTO usuarios (id, tipo_usuario, nombre, email, dni, telefono, domicilio, contrasenia , rol)
 VALUES
-    (1, 'Encargado', 'Ramiro Castaño', 'ramiro@liga.com', '40111222', '3885123456', 'SSJ', '123'),
-    (2, 'Encargado', 'Sergio Villalba', 'sergio@liga.com', '38999888', '3885123499', 'Palpalá', '123'),
-    (3, 'Encargado', 'Leonardo Cabrera', 'leo@liga.com', '41222111', '3884121122', 'El Carmen', '123'),
-    (4, 'Encargado', 'Diego Benítez', 'diego@liga.com', '37555777', '3884556677', 'San Salvador', '123');
+    (1, 'Encargado', 'Patricio Quiroga', 'patricioquiroga355@gmail.com', '41844570', '3885123456', 'SSJ', '$2a$10$iYVMDyD5MgsydByu2jN37.DPv/hd/f9cpt/oP.zQBnkQNlyMoWs4G','ADMIN'),
+    (2, 'Encargado', 'Sergio Villalba', 'sergio@liga.com', '38999888', '3885123499', 'Palpalá', '123','ADMIN'),
+    (3, 'Encargado', 'Leonardo Cabrera', 'leo@liga.com', '41222111', '3884121122', 'El Carmen', '123','ADMIN'),
+    (4, 'Encargado', 'Diego Benítez', 'diego@liga.com', '37555777', '3884556677', 'San Salvador', '$2a$10$iYVMDyD5MgsydByu2jN37.DPv/hd/f9cpt/oP.zQBnkQNlyMoWs4G','ENCARGADO');
 
 
 INSERT INTO equipos (id, nombre, localidad, escudo, camiseta_titular, camiseta_suplente, fecha_creacion, estado, cancha_id, zona_id, encargado_id)
