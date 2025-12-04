@@ -27,7 +27,7 @@ public class CanchaService {
 
 
     public List<CanchaDTO> listarCanchas(){
-        return canchaRepository.findAll().stream().map(CanchaMapper::toDTO).toList();
+        return canchaRepository.findAllByEstadoTrue().stream().map(CanchaMapper::toDTO).toList();
     }
 
     public CanchaDTO crearCancha(CanchaDTO dto){
