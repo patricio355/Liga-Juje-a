@@ -1,6 +1,8 @@
 package com.patricio.springboot.app.service;
 
+import com.patricio.springboot.app.dto.CanchaDTO;
 import com.patricio.springboot.app.dto.EquipoDTO;
+import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.Cancha;
 import com.patricio.springboot.app.entity.Encargado;
 import com.patricio.springboot.app.entity.Equipo;
@@ -103,6 +105,18 @@ public class EquipoService {
         equipo.setEncargado(equipo.getEncargado());
         equipoRepository.save(equipo);
         return EquipoMapper.toDTO(equipo);
+    }
+
+    public void asignarCancha(CanchaDTO dto) {
+
+    }
+
+    public void asignarZona(ZonaDTO dto) {
+
+    }
+
+    public void asignarEntrenador(){
+
     }
 
 }
