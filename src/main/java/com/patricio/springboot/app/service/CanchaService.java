@@ -44,4 +44,10 @@ public class CanchaService {
         canchaRepository.save(cancha);
     }
 
+    public void modificarCancha(CanchaDTO dto) {
+
+    }
+
+
+
 }
