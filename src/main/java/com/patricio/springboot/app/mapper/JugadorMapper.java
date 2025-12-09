@@ -34,17 +34,25 @@ public class JugadorMapper {
     }
 
     public static Jugador toEntity(JugadorDTO dto) {
-        if (dto == null) {
-            return null;
-        }
+        if (dto == null) return null;
 
         Jugador jugador = new Jugador();
-        jugador.setId(dto.getId());
+
+
+        if (dto.getId() != null) {
+            jugador.setId(dto.getId());
+        }
+
         jugador.setNombre(dto.getNombre());
         jugador.setApellido(dto.getApellido());
         jugador.setDni(dto.getDni());
-        jugador.setCarnetPdf(dto.getCarnetPdf());
-        jugador.setFechaAlta(dto.getFechaAlta());
+        jugador.setCarnetPdf(dto.getCarnetPdf() != null ? dto.getCarnetPdf() : 0);
+
+
+        if (dto.getFechaAlta() != null) {
+            jugador.setFechaAlta(dto.getFechaAlta());
+        }
+
         jugador.setFechaBaja(dto.getFechaBaja());
         jugador.setEstado(dto.getEstado());
         jugador.setPosicion(dto.getPosicion());
@@ -52,7 +60,7 @@ public class JugadorMapper {
 
 
 
-
         return jugador;
     }
+
 }

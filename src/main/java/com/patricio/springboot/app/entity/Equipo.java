@@ -6,6 +6,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -48,6 +49,9 @@ public class Equipo {
 
 
     public void addJugador(Jugador jugador) {
+        if (this.jugadores == null) {
+            this.jugadores = new ArrayList<>();
+        }
         this.jugadores.add(jugador);
     }
 }

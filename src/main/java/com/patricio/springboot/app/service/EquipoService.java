@@ -2,8 +2,10 @@ package com.patricio.springboot.app.service;
 
 import com.patricio.springboot.app.dto.CanchaDTO;
 import com.patricio.springboot.app.dto.EquipoDTO;
+import com.patricio.springboot.app.dto.JugadorDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.*;
+import com.patricio.springboot.app.mapper.JugadorMapper;
 import com.patricio.springboot.app.repository.CanchaRepository;
 import com.patricio.springboot.app.repository.EquipoRepository;
 import com.patricio.springboot.app.repository.JugadorRepository;
@@ -14,6 +16,7 @@ import com.patricio.springboot.app.mapper.EquipoMapper;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -48,6 +51,18 @@ public class EquipoService {
                 .stream()
                 .map(EquipoMapper::toDTO)
                 .toList();
+    }
+
+
+    public List<JugadorDTO> listarJugadores(Long idEquipo) {
+
+        Equipo equipo = equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+
+        return jugadorRepository.findByEquipoId(idEquipo)
+                .stream()
+                .map(JugadorMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
 
@@ -145,10 +160,41 @@ public class EquipoService {
 
         // agregar jugador al equipo
         equipo.addJugador(jugador);
+        jugador.setEquipo(equipo);
+
+        jugadorRepository.save(jugador);
 
         Equipo actualizado = equipoRepository.save(equipo);
 
         return EquipoMapper.toDTO(actualizado);
     }
+
+    public EquipoDTO eliminarJugador(Long idEquipo, Long idJugador) {
+
+        Equipo equipo = equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+
+        Jugador jugador = jugadorRepository.findById(idJugador)
+                .orElseThrow(() -> new RuntimeException("Jugador no encontrado"));
+
+        // Validar que el jugador realmente pertenece a ese equipo
+        if (jugador.getEquipo() == null || !jugador.getEquipo().getId().equals(idEquipo)) {
+            throw new RuntimeException("El jugador no pertenece a este equipo");
+        }
+
+        // Remover desde ambos lados (MUY IMPORTANTE)
+        equipo.getJugadores().remove(jugador);
+        jugador.setEquipo(null);
+
+        // Guardar cambios
+        jugadorRepository.save(jugador);
+        Equipo actualizado = equipoRepository.save(equipo);
+
+        return EquipoMapper.toDTO(actualizado);
+    }
+
+
+
+
 
 }
