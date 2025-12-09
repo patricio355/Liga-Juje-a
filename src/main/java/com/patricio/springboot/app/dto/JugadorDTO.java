@@ -10,7 +10,7 @@ public class JugadorDTO {
     private String nombre;
     private String apellido;
     private Integer dni;
-    private byte carnetPdf;
+    private Byte carnetPdf;
     private LocalDate fechaAlta;
     private LocalDate fechaBaja;
     private String estado;

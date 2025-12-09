@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.Optional;
 
 import com.patricio.springboot.app.dto.EquipoDTO;
+import com.patricio.springboot.app.dto.JugadorDTO;
 import com.patricio.springboot.app.entity.Equipo;
 import com.patricio.springboot.app.service.EquipoService;
+import com.patricio.springboot.app.service.JugadorService;
 import jakarta.persistence.Id;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,9 +33,12 @@ public class EquipoController {
 
 
     private EquipoService equipoService;
+    private JugadorService jugadorService;
 
-    public EquipoController(EquipoService equipoService) {
+    public EquipoController(EquipoService equipoService, JugadorService jugadorService) {
+
         this.equipoService = equipoService;
+        this.jugadorService = jugadorService;
     }
 
     //listar todos los equipos
@@ -120,6 +125,22 @@ public class EquipoController {
         EquipoDTO actualizado = equipoService.registrarJugador(idEquipo, idJugador);
 
         return ResponseEntity.ok(actualizado);
+    }
+
+
+    @DeleteMapping("/{idEquipo}/jugadores/{idJugador}")
+    public ResponseEntity<EquipoDTO> eliminarJugador(@PathVariable Long idEquipo,
+                                                     @PathVariable Long idJugador) {
+
+        EquipoDTO actualizado = equipoService.eliminarJugador(idEquipo, idJugador);
+
+        return ResponseEntity.ok(actualizado);
+    }
+
+    @GetMapping("/{idEquipo}/jugadores")
+    public ResponseEntity<List<JugadorDTO>> listarJugadores(@PathVariable Long idEquipo) {
+        List<JugadorDTO> jugadores = equipoService.listarJugadores(idEquipo);
+        return ResponseEntity.ok(jugadores);
     }
 
 }
