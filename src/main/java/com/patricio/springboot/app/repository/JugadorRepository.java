@@ -8,5 +8,7 @@ import java.util.Optional;
 
 public interface JugadorRepository extends JpaRepository<Jugador, Integer> {
 
-    Jugador getById(Long id);
+    Optional<Jugador> findById(Long id);
+
+    boolean existsByDni(int dni);
 }

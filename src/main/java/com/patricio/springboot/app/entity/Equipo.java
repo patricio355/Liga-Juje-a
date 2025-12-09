@@ -46,4 +46,8 @@ public class Equipo {
     @JoinColumn(name = "zona_id")
     private Zona zona;
 
+
+    public void addJugador(Jugador jugador) {
+        this.jugadores.add(jugador);
+    }
 }
