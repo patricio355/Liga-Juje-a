@@ -3,12 +3,10 @@ package com.patricio.springboot.app.service;
 import com.patricio.springboot.app.dto.CanchaDTO;
 import com.patricio.springboot.app.dto.EquipoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
-import com.patricio.springboot.app.entity.Cancha;
-import com.patricio.springboot.app.entity.Encargado;
-import com.patricio.springboot.app.entity.Equipo;
-import com.patricio.springboot.app.entity.Zona;
+import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.repository.CanchaRepository;
 import com.patricio.springboot.app.repository.EquipoRepository;
+import com.patricio.springboot.app.repository.JugadorRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import org.springframework.stereotype.Service;
 import com.patricio.springboot.app.mapper.EquipoMapper;
@@ -24,11 +22,13 @@ public class EquipoService {
     private EquipoRepository equipoRepository;
     private ZonaRepository zonaRepository;
     private CanchaRepository canchaRepository;
+    private JugadorRepository jugadorRepository;
 
-    public EquipoService(EquipoRepository equipoRepository , ZonaRepository zonaRepository, CanchaRepository canchaRepository) {
+    public EquipoService(EquipoRepository equipoRepository , ZonaRepository zonaRepository, CanchaRepository canchaRepository , JugadorRepository jugadorRepository) {
         this.equipoRepository = equipoRepository;
         this.zonaRepository = zonaRepository;
         this.canchaRepository = canchaRepository;
+        this.jugadorRepository = jugadorRepository;
     }
 
 
@@ -107,16 +107,48 @@ public class EquipoService {
         return EquipoMapper.toDTO(equipo);
     }
 
-    public void asignarCancha(CanchaDTO dto) {
+    public EquipoDTO asignarCancha(Long idEquipo, Long idCancha) {
 
+        Equipo equipo = equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+
+        Cancha cancha = canchaRepository.findById(idCancha)
+                .orElseThrow(() -> new RuntimeException("Cancha no encontrada"));
+
+        equipo.setLocalia(cancha);
+
+        Equipo actualizado = equipoRepository.save(equipo);
+        return EquipoMapper.toDTO(actualizado);
+    }
+    public EquipoDTO asignarZona(Long idEquipo, Long idZona) {
+
+        Equipo equipo = equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+
+        Zona zona = zonaRepository.findById(idZona)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+
+        equipo.setZona(zona);
+
+        Equipo actualizado = equipoRepository.save(equipo);
+        return EquipoMapper.toDTO(actualizado);
     }
 
-    public void asignarZona(ZonaDTO dto) {
+    public EquipoDTO registrarJugador(Long idEquipo, Long idJugador) {
 
-    }
+        Equipo equipo = equipoRepository.findById(idEquipo)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
 
-    public void asignarEntrenador(){
 
+        Jugador jugador = jugadorRepository.findById(idJugador)
+                .orElseThrow(() -> new RuntimeException("Jugador no encontrado"));
+
+        // agregar jugador al equipo
+        equipo.addJugador(jugador);
+
+        Equipo actualizado = equipoRepository.save(equipo);
+
+        return EquipoMapper.toDTO(actualizado);
     }
 
 }

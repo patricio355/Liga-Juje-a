@@ -91,4 +91,35 @@ public class EquipoController {
         return ResponseEntity.ok().body(entity);
     }
 
+    @PutMapping("/{idEquipo}/cancha/{idCancha}")
+    @Operation(summary = "Asignar una cancha a un equipo")
+    public ResponseEntity<EquipoDTO> asignarCancha(@PathVariable Long idEquipo,
+                                                   @PathVariable Long idCancha) {
+
+        log.info("Asignando cancha {} al equipo {}", idCancha, idEquipo);
+
+        EquipoDTO entity = equipoService.asignarCancha(idEquipo, idCancha);
+
+        return ResponseEntity.ok(entity);
+    }
+
+    @PutMapping("/{idEquipo}/zona/{idZona}")
+    @Operation()
+    public ResponseEntity<EquipoDTO> asignarZona(@PathVariable Long idEquipo,
+                                                 @PathVariable Long idZona) {
+
+        EquipoDTO actualizado = equipoService.asignarZona(idEquipo, idZona);
+        return ResponseEntity.ok(actualizado);
+    }
+
+
+    @PutMapping("/{idEquipo}/jugadores/{idJugador}")
+    public ResponseEntity<EquipoDTO> registrarJugador(@PathVariable Long idEquipo,
+                                                      @PathVariable Long idJugador) {
+
+        EquipoDTO actualizado = equipoService.registrarJugador(idEquipo, idJugador);
+
+        return ResponseEntity.ok(actualizado);
+    }
+
 }

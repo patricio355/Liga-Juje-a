@@ -25,20 +25,36 @@ public class SecurityConfig {
     private JwtFilter jwtFilter;
 
     @Bean
+//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+//
+//        http.csrf(csrf -> csrf.disable())
+//                .authorizeHttpRequests(auth -> auth
+//                        .requestMatchers("/login").permitAll()   // login es público
+//                        .requestMatchers(HttpMethod.GET, "/api/canchas/**").permitAll()
+//                        .requestMatchers(HttpMethod.GET, "/api/equipos/**").permitAll()
+//                        .requestMatchers("/api/canchas/**").authenticated()
+//                        .requestMatchers("/api/equipos/**").authenticated()
+//                        .requestMatchers("/admin/**","/api/admin/**").hasRole("ADMIN")   // rutas admin
+//                        .requestMatchers("/encargado/**").hasRole("ENCARGADO")  // rutas encargados
+//                        .anyRequest().authenticated()
+//                )
+//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+//
+//        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+//
+//        return http.build();
+//    }
+
+    //pruebas
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login").permitAll()   // login es público
-                        .requestMatchers(HttpMethod.GET, "/api/canchas/**").permitAll()
-                        .requestMatchers("/api/canchas/**").authenticated()
-                        .requestMatchers("/admin/**","/api/admin/**").hasRole("ADMIN")   // rutas admin
-                        .requestMatchers("/encargado/**").hasRole("ENCARGADO")  // rutas encargados
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
 
         return http.build();
     }
