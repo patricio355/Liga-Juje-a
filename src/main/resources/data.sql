@@ -28,9 +28,9 @@ VALUES
     (4, 'Encargado', 'Diego Benítez', 'diego@liga.com', '37555777', '3884556677', 'San Salvador', '$2a$10$iYVMDyD5MgsydByu2jN37.DPv/hd/f9cpt/oP.zQBnkQNlyMoWs4G','ENCARGADO');
 
 
-INSERT INTO equipos (id, nombre, localidad, escudo, camiseta_titular, camiseta_suplente, fecha_creacion, estado, cancha_id, zona_id, encargado_id)
+INSERT INTO equipos (id, nombre, localidad, escudo, camiseta_titular, camiseta_suplente, fecha_creacion, estado, cancha_id, encargado_id)
 VALUES
-    (1, 'Atlético Bulón', 'San Salvador', 'https://bulon.com/escudos/atletico.png', 'Rojo', 'Blanco', '2024-10-01', true, 1, 1, 1),
-    (2, 'Los Matadores', 'Palpalá', 'https://bulon.com/escudos/matadores.png', 'Azul', 'Negro', '2024-09-15', true, 2, 1, 2),
-    (3, 'San Martín FC', 'El Carmen', 'https://bulon.com/escudos/sanmartin.png', 'Verde', 'Blanco', '2024-07-20', true, 3, 2, 3),
-    (4, 'Juventud Unida', 'SSJ', 'https://bulon.com/escudos/juventud.png', 'Amarillo', 'Negro', '2024-06-10', true, 1, 2, 4);
+    (1, 'Atlético Bulón', 'San Salvador', 'https://bulon.com/escudos/atletico.png', 'Rojo', 'Blanco', '2024-10-01', true, 1,  1),
+    (2, 'Los Matadores', 'Palpalá', 'https://bulon.com/escudos/matadores.png', 'Azul', 'Negro', '2024-09-15', true, 2,  2),
+    (3, 'San Martín FC', 'El Carmen', 'https://bulon.com/escudos/sanmartin.png', 'Verde', 'Blanco', '2024-07-20', true, 3,  3),
+    (4, 'Juventud Unida', 'SSJ', 'https://bulon.com/escudos/juventud.png', 'Amarillo', 'Negro', '2024-06-10', true, 1,  4);

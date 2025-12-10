@@ -25,6 +25,8 @@ public class Equipo {
     @OneToMany(mappedBy = "equipo", cascade = CascadeType.ALL)
     private List<Jugador> jugadores;
 
+    @OneToMany(mappedBy = "equipo")
+    private List<EquipoZona> participaciones;
 
     @OneToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -42,10 +44,7 @@ public class Equipo {
     @JoinColumn(name = "cancha_id",nullable = true)
     private Cancha localia;
 
-    @ManyToOne
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    @JoinColumn(name = "zona_id")
-    private Zona zona;
+
 
 
     public void addJugador(Jugador jugador) {

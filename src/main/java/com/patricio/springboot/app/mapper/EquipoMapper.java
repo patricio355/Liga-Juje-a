@@ -17,7 +17,6 @@ public final class EquipoMapper {
         dto.setCamisetaSuplente(e.getCamisetaSuplente());
         dto.setEstado(e.isEstado());
         dto.setFechaCreacion(e.getFechaCreacion().toString());
-        dto.setZonaId(e.getZona() != null ? e.getZona().getId() : null);
         dto.setCanchaId(e.getLocalia() != null ? e.getLocalia().getId() : null);
         dto.setEncargadoId(e.getEncargado() != null ? e.getEncargado().getId() : null);
 

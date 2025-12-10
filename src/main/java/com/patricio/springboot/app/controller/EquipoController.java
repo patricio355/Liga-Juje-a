@@ -6,9 +6,11 @@ import java.util.List;
 import java.util.Optional;
 
 import com.patricio.springboot.app.dto.EquipoDTO;
+import com.patricio.springboot.app.dto.EquipoZonaDTO;
 import com.patricio.springboot.app.dto.JugadorDTO;
 import com.patricio.springboot.app.entity.Equipo;
 import com.patricio.springboot.app.service.EquipoService;
+import com.patricio.springboot.app.service.EquipoZonaService;
 import com.patricio.springboot.app.service.JugadorService;
 import jakarta.persistence.Id;
 import org.springframework.http.ResponseEntity;
@@ -34,11 +36,13 @@ public class EquipoController {
 
     private EquipoService equipoService;
     private JugadorService jugadorService;
+    private EquipoZonaService equipoZonaService;
 
-    public EquipoController(EquipoService equipoService, JugadorService jugadorService) {
+    public EquipoController(EquipoService equipoService, JugadorService jugadorService, EquipoZonaService equipoZonaService) {
 
         this.equipoService = equipoService;
         this.jugadorService = jugadorService;
+        this.equipoZonaService = equipoZonaService;
     }
 
     //listar todos los equipos
@@ -141,6 +145,17 @@ public class EquipoController {
     public ResponseEntity<List<JugadorDTO>> listarJugadores(@PathVariable Long idEquipo) {
         List<JugadorDTO> jugadores = equipoService.listarJugadores(idEquipo);
         return ResponseEntity.ok(jugadores);
+    }
+
+    @GetMapping("/zonas/{zonaId}/equipos")
+    public List<EquipoDTO> listarEquiposPorZona(@PathVariable Long zonaId) {
+        return equipoZonaService.listarEquiposPorZona(zonaId);
+    }
+
+    @GetMapping("/posiciones/zona/{zonaId}")
+    public ResponseEntity<List<EquipoZonaDTO>> getTablaPosiciones(@PathVariable Long zonaId) {
+        List<EquipoZonaDTO> tabla = equipoZonaService.listarTabla(zonaId);
+        return ResponseEntity.ok(tabla);
     }
 
 }
