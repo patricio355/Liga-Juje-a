@@ -71,11 +71,7 @@ public class EquipoService {
         Equipo equipo = EquipoMapper.toEntity(dto);
         equipo.setFechaCreacion(LocalDate.now());
         // ZONA
-        if (dto.getZonaId() != null) {
-            Zona zona = zonaRepository.findById(dto.getZonaId())
-                    .orElseThrow(() -> new RuntimeException("Zona inexistente"));
-            equipo.setZona(zona);
-        }
+
 
         // CANCHA
         if (dto.getCanchaId() != null) {
@@ -115,7 +111,6 @@ public class EquipoService {
         equipo.setCamisetaSuplente(dto.getCamisetaSuplente());
         equipo.setCamisetaTitular(dto.getCamisetaTitular());
         equipo.setEscudo(dto.getEscudo());
-        equipo.setZona(equipo.getZona());
         equipo.setLocalia(equipo.getLocalia());
         equipo.setEncargado(equipo.getEncargado());
         equipoRepository.save(equipo);
@@ -143,7 +138,7 @@ public class EquipoService {
         Zona zona = zonaRepository.findById(idZona)
                 .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
 
-        equipo.setZona(zona);
+
 
         Equipo actualizado = equipoRepository.save(equipo);
         return EquipoMapper.toDTO(actualizado);
