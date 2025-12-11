@@ -10,6 +10,7 @@ import java.util.List;
 @Table(name = "zonas")
 public class Zona {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nombre;
 

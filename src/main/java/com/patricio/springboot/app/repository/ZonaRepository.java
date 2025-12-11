@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface ZonaRepository extends JpaRepository<Zona, Integer> {
     Optional<Zona> findById(Long id);
+
+
 }
