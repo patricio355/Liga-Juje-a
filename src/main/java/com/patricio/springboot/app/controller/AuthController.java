@@ -35,7 +35,7 @@ public class AuthController {
         UserDetails user = (UserDetails) auth.getPrincipal();
 
         // GENERAR TOKEN CORRECTAMENTE
-        String token = jwtUtil.generateToken(user.getUsername());
+        String token = jwtUtil.generateToken(user);
 
         return new TokenDTO(token);
     }
