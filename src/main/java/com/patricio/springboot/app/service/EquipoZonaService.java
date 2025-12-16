@@ -31,15 +31,33 @@ public class EquipoZonaService {
         Zona zona = zonaRepository.findById(zonaId)
                 .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
 
+        Long torneoId = zona.getTorneo().getId();
+
+        if (equipoZonaRepository
+                .existsByNombreEquipoIgnoreCaseAndZona_Torneo_Id(
+                        equipo.getNombre(),
+                        torneoId
+                )) {
+            throw new RuntimeException(
+                    "Ya existe un equipo con ese nombre en este torneo"
+            );
+        }
+
+
+
         EquipoZona relacion = new EquipoZona();
         relacion.setEquipo(equipo);
         relacion.setZona(zona);
+        relacion.setTorneoId(torneoId);
         relacion.setNombreEquipo(equipo.getNombre());
 
         EquipoZona guardado = equipoZonaRepository.save(relacion);
 
         return EquipoZonaMapper.toDTO(guardado);
     }
+
+
+
 
     public List<EquipoDTO> listarEquiposPorZona(Long zonaId) {
         return equipoZonaRepository.listarTablaPosiciones(zonaId)

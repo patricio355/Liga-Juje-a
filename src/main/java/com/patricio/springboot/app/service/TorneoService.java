@@ -5,6 +5,7 @@ import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.Torneo;
 import com.patricio.springboot.app.entity.Zona;
 import com.patricio.springboot.app.mapper.TorneoMapper;
+import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.TorneoRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import org.springframework.stereotype.Service;
@@ -20,9 +21,12 @@ public class TorneoService {
     private TorneoRepository torneoRepository;
     private ZonaRepository zonaRepository;
 
-    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository) {
+    private EquipoZonaRepository equipoZonaRepository;
+
+    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository) {
         this.torneoRepository = torneoRepository;
         this.zonaRepository = zonaRepository;
+        this.equipoZonaRepository = equipoZonaRepository;
     }
     // --------------------------
     // CREAR TORNEO
@@ -136,8 +140,29 @@ public class TorneoService {
         return TorneoMapper.toDTO(torneo);
     }
 
-    // --------------------------
-    // MAPPER
-    // --------------------------
+
+
+    public List<TorneoDTO> torneosDisponiblesParaEquipo(Long equipoId) {
+
+        // Torneos donde el equipo ya participa
+        List<Long> torneosInscripto =
+                equipoZonaRepository.findTorneoIdsByEquipoId(equipoId);
+
+        // Si no participa en ninguno → todos los torneos ACTIVOS
+        if (torneosInscripto.isEmpty()) {
+            return torneoRepository.findByEstado("activo")
+                    .stream()
+                    .map(TorneoMapper::toDTO)
+                    .toList();
+        }
+
+        // Torneos ACTIVOS donde NO participa
+        return torneoRepository
+                .findByEstadoAndIdNotIn("activo", torneosInscripto)
+                .stream()
+                .map(TorneoMapper::toDTO)
+                .toList();
+    }
+
 
 }

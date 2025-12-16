@@ -1,15 +1,10 @@
 package com.patricio.springboot.app.service;
 
-import com.patricio.springboot.app.dto.CanchaDTO;
-import com.patricio.springboot.app.dto.EquipoDTO;
-import com.patricio.springboot.app.dto.JugadorDTO;
-import com.patricio.springboot.app.dto.ZonaDTO;
+import com.patricio.springboot.app.dto.*;
 import com.patricio.springboot.app.entity.*;
+import com.patricio.springboot.app.mapper.EquipoZonaMapper;
 import com.patricio.springboot.app.mapper.JugadorMapper;
-import com.patricio.springboot.app.repository.CanchaRepository;
-import com.patricio.springboot.app.repository.EquipoRepository;
-import com.patricio.springboot.app.repository.JugadorRepository;
-import com.patricio.springboot.app.repository.ZonaRepository;
+import com.patricio.springboot.app.repository.*;
 import org.springframework.stereotype.Service;
 import com.patricio.springboot.app.mapper.EquipoMapper;
 
@@ -26,12 +21,16 @@ public class EquipoService {
     private ZonaRepository zonaRepository;
     private CanchaRepository canchaRepository;
     private JugadorRepository jugadorRepository;
+    private EquipoZonaRepository equipoZonaRepository;
+    private UsuarioRepository usuarioRepository;
 
-    public EquipoService(EquipoRepository equipoRepository , ZonaRepository zonaRepository, CanchaRepository canchaRepository , JugadorRepository jugadorRepository) {
+    public EquipoService(EquipoRepository equipoRepository, UsuarioRepository usuarioRepository , ZonaRepository zonaRepository, CanchaRepository canchaRepository , JugadorRepository jugadorRepository, EquipoZonaRepository equipoZonaRepository) {
         this.equipoRepository = equipoRepository;
         this.zonaRepository = zonaRepository;
         this.canchaRepository = canchaRepository;
         this.jugadorRepository = jugadorRepository;
+        this.equipoZonaRepository = equipoZonaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
 
@@ -40,18 +39,52 @@ public class EquipoService {
     }
 
     public List<EquipoDTO> listarEquipos() {
+
         return equipoRepository.findAll()
                 .stream()
-                .map(EquipoMapper::toDTO)
+                .map(equipo -> {
+
+                    // 1️⃣ Equipo básico
+                    EquipoDTO dto = EquipoMapper.toDTO(equipo);
+
+                    // 2️⃣ Buscar inscripciones (equipo_zona)
+                    List<EquipoZonaDTO> inscripciones =
+                            equipoZonaRepository
+                                    .findByEquipoId(equipo.getId())
+                                    .stream()
+                                    .map(EquipoZonaMapper::toDTO)
+                                    .toList();
+
+                    // 3️⃣ Setearlas en el DTO
+                    dto.setInscripciones(inscripciones);
+
+                    return dto;
+                })
                 .toList();
     }
 
     public List<EquipoDTO> listarEquiposActivos() {
+
         return equipoRepository.findAllByEstado(true)
                 .stream()
-                .map(EquipoMapper::toDTO)
+                .map(equipo -> {
+
+                    EquipoDTO dto = EquipoMapper.toDTO(equipo);
+
+                    List<EquipoZonaDTO> inscripciones =
+                            equipoZonaRepository
+                                    .findByEquipoId(equipo.getId())
+                                    .stream()
+                                    .map(EquipoZonaMapper::toDTO)
+                                    .toList();
+
+                    dto.setInscripciones(inscripciones);
+
+                    return dto;
+                })
                 .toList();
     }
+
 
 
     public List<JugadorDTO> listarJugadores(Long idEquipo) {
@@ -80,12 +113,33 @@ public class EquipoService {
             equipo.setLocalia(cancha);
         }
 
-        // ENCARGADO
-//        if (dto.getEncargadoId() != null) {
-//            Encargado encargado = encargadoRepository.findById(dto.getEncargadoId())
-//                    .orElseThrow(() -> new RuntimeException("Encargado inexistente"));
-            equipo.setEncargado(null);
-//        }
+
+
+        if (dto.getEncargadoEmail()!=null) {
+
+
+            Usuario encargado = usuarioRepository
+                    .findByEmail(dto.getEncargadoEmail())
+                    .orElseThrow(() -> new RuntimeException("Usuario no existe"));
+
+
+
+
+            if (!encargado.getRol().equals("ENCARGADO")) {
+                throw new RuntimeException("Este usuario no es un encargado");
+            }
+
+            if (equipoRepository.existsByEncargado(encargado)) {
+                throw new RuntimeException("Este usuario ya es encargado de un equipo");
+            }
+
+            equipo.setEncargado(encargado);
+        }
+
+
+
+
+
 
 
 
@@ -104,18 +158,88 @@ public class EquipoService {
     }
 
     public EquipoDTO editarEquipo(Long id, EquipoDTO dto) {
-        Equipo equipo = equipoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Equipo no existe"));
 
+        Equipo equipo = equipoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
+
+        // ============================
+        // VALIDAR NOMBRE POR TORNEO
+        // ============================
+        List<Long> torneoIds =
+                equipoZonaRepository.findTorneoIdsByEquipoId(id);
+
+        for (Long torneoId : torneoIds) {
+            if (equipoZonaRepository
+                    .existsByNombreEquipoIgnoreCaseAndZona_Torneo_IdAndEquipo_IdNot(
+                            dto.getNombre(),
+                            torneoId,
+                            id
+                    )) {
+                throw new RuntimeException(
+                        "Ya existe un equipo con ese nombre en algun torneo perteneciente"
+                );
+            }
+        }
+
+        // ============================
+        // MANEJO DEL ENCARGADO
+        // ============================
+        String email = dto.getEncargadoEmail();
+
+        if (email == null || email.isBlank()) {
+
+            equipo.setEncargado(null);
+
+        } else {
+
+            Usuario usuario = usuarioRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new RuntimeException("No existe un usuario con ese email")
+                    );
+
+            if (!"ENCARGADO".equals(usuario.getRol())) {
+                throw new RuntimeException("El usuario no es un encargado");
+            }
+
+            boolean yaAsignado = equipoRepository
+                    .existsByEncargadoAndIdNot((Encargado) usuario, id);
+
+            if (yaAsignado) {
+                throw new RuntimeException(
+                        "Este encargado ya está asignado a otro equipo"
+                );
+            }
+
+            equipo.setEncargado((Encargado) usuario);
+        }
+
+        // ============================
+        // RESTO DE CAMPOS
+        // ============================
         equipo.setNombre(dto.getNombre());
-        equipo.setCamisetaSuplente(dto.getCamisetaSuplente());
-        equipo.setCamisetaTitular(dto.getCamisetaTitular());
+        equipo.setLocalidad(dto.getLocalidad());
         equipo.setEscudo(dto.getEscudo());
-        equipo.setLocalia(equipo.getLocalia());
-        equipo.setEncargado(equipo.getEncargado());
+        equipo.setEstado(dto.getEstado());
+
+        // 💾 Guardar equipo
         equipoRepository.save(equipo);
+
+        // ============================
+        // 🔥 SINCRONIZAR EQUIPO_ZONA
+        // ============================
+        List<EquipoZona> participaciones =
+                equipoZonaRepository.findByEquipoId(id);
+
+        for (EquipoZona ez : participaciones) {
+            ez.setNombreEquipo(dto.getNombre());
+        }
+
+        equipoZonaRepository.saveAll(participaciones);
+
         return EquipoMapper.toDTO(equipo);
     }
+
+
 
     public EquipoDTO asignarCancha(Long idEquipo, Long idCancha) {
 

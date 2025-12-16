@@ -31,7 +31,7 @@ public class Equipo {
     @OneToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "encargado_id")
-    private Encargado encargado;
+    private Usuario encargado;
 
     private String escudo;
     private String camisetaTitular;

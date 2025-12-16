@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 @Entity
 @Table(name = "equipo_zona")
 @Data
@@ -24,7 +23,10 @@ public class EquipoZona {
     @JoinColumn(name = "zona_id")
     private Zona zona;
 
-    // Campos para tabla de posiciones
+    @Column(name = "torneo_id", nullable = false)
+    private Long torneoId;
+
+    // Tabla de posiciones
     private int puntos = 0;
     private int partidosJugados = 0;
     private int ganados = 0;
@@ -32,9 +34,10 @@ public class EquipoZona {
     private int perdidos = 0;
     private int golesAFavor = 0;
     private int golesEnContra = 0;
+
     private String nombreEquipo;
+
     public int getDiferencia() {
         return golesAFavor - golesEnContra;
     }
 }
-

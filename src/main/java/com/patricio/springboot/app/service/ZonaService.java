@@ -7,11 +7,23 @@ import com.patricio.springboot.app.repository.ZonaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ZonaService {
 
     private final ZonaRepository zonaRepository;
+
+
+    public List<ZonaDTO> listarPorTorneo(Long torneoId) {
+        return zonaRepository.findByTorneoId(torneoId)
+                .stream()
+                .map(ZonaMapper::toDTO)
+                .toList();
+    }
+
+
 
     /**
      * Edita una zona existente.

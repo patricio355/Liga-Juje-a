@@ -7,6 +7,9 @@ public class EquipoZonaDTO {
     private Long id;
     private Long equipoId;
     private Long zonaId;
+    private Long torneoId;
+    private String nombreTorneo;
+    private String nombreZona;
 
     private int puntos;
     private int partidosJugados;
