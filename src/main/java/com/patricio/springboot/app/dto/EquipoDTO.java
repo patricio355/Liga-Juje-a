@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,7 +22,9 @@ public class EquipoDTO {
     private Boolean estado;
     private String fechaCreacion;
 
+    private List<EquipoZonaDTO> inscripciones;
+
     private Long zonaId;
     private Long canchaId;
-    private Long encargadoId;
+    private String encargadoEmail;
 }

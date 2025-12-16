@@ -1,11 +1,3 @@
--- ================================================
--- 1) ZONAS
--- ================================================
-INSERT INTO zonas (id, nombre, descripcion, torneo_id)
-VALUES
-    (1, 'Zona A', 'Zona principal A', NULL),
-    (2, 'Zona B', 'Zona principal B', NULL);
-
 
 -- ================================================
 -- 2) CANCHAS

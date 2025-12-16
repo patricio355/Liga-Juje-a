@@ -3,6 +3,7 @@ package com.patricio.springboot.app.controller;
 import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.service.TorneoService;
+import com.patricio.springboot.app.service.ZonaService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.List;
 public class TorneoController {
 
     private final TorneoService torneoService;
+    private final ZonaService zonaService;
 
 
     // ---------------------------------------------------------
@@ -40,6 +42,13 @@ public class TorneoController {
     @GetMapping("/activos")
     public ResponseEntity<List<TorneoDTO>> listarActivos() {
         return ResponseEntity.ok(torneoService.listarActivos());
+    }
+
+
+
+    @GetMapping("/disponibles/equipo/{equipoId}")
+    public List<TorneoDTO> torneosDisponibles(@PathVariable Long equipoId) {
+        return torneoService.torneosDisponiblesParaEquipo(equipoId);
     }
 
     // ---------------------------------------------------------
@@ -82,5 +91,10 @@ public class TorneoController {
             @PathVariable Long idZona
     ) {
         return ResponseEntity.ok(torneoService.quitarZona(idTorneo, idZona));
+    }
+
+    @GetMapping("/zonas/torneo/{torneoId}")
+    public List<ZonaDTO> listarZonas(@PathVariable Long torneoId) {
+        return zonaService.listarPorTorneo(torneoId);
     }
 }

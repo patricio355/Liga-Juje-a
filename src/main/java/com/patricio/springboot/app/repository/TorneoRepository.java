@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
-
+    List<Torneo> findByEstadoAndIdNotIn(String estado, List<Long> ids);
     Optional<Torneo> findById(Long id);
     List<Torneo> findByEstado(String estado);
+    List<Torneo> findByIdNotIn(List<Long> ids);
 }
