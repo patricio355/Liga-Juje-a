@@ -1,15 +1,20 @@
 package com.patricio.springboot.app.service;
 
+import com.patricio.springboot.app.dto.FixtureFechaDTO;
 import com.patricio.springboot.app.dto.PartidoCreateDTO;
-import com.patricio.springboot.app.entity.EquipoZona;
-import com.patricio.springboot.app.entity.EstadisticaJugador;
-import com.patricio.springboot.app.entity.Partido;
+import com.patricio.springboot.app.entity.*;
+import com.patricio.springboot.app.mapper.PartidoMapper;
 import com.patricio.springboot.app.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -73,6 +78,8 @@ public class PartidoService {
         partido.setFecha(LocalDate.parse(dto.getFecha()));
         partido.setVeedor(dto.getVeedor());
         partido.setEstado("PENDIENTE");
+        partido.setNumeroFecha(dto.getNumeroFecha());
+        partido.setFechaHora(dto.getFechaHora());
 
         return partidoRepository.save(partido);
     }
@@ -80,41 +87,101 @@ public class PartidoService {
 
     // CERRAR PARTIDO CALCULANDO GOLES AUTOMÁTICAMENTE
 
+    @Transactional
     public Partido cerrarPartido(Long partidoId) {
 
         Partido partido = partidoRepository.findById(partidoId)
                 .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
 
-        if ("FINALIZADO".equalsIgnoreCase(partido.getEstado())) {
-            throw new RuntimeException("El partido ya está finalizado.");
+        // 🔒 Evitar cerrar dos veces
+        if ("FINALIZADO".equals(partido.getEstado())) {
+            throw new RuntimeException("El partido ya está cerrado");
         }
 
-        List<EstadisticaJugador> stats = partido.getEstadisticas();
-
-        int golesLocal = stats.stream()
-                .filter(e -> e.getJugador().getEquipo().getId().equals(partido.getEquipoLocal().getId()))
+        int golesLocal = partido.getEstadisticas().stream()
+                .filter(e -> e.getJugador().getEquipo().getId()
+                        .equals(partido.getEquipoLocal().getId()))
                 .mapToInt(EstadisticaJugador::getGoles)
                 .sum();
 
-        int golesVisitante = stats.stream()
-                .filter(e -> e.getJugador().getEquipo().getId().equals(partido.getEquipoVisitante().getId()))
+        int golesVisitante = partido.getEstadisticas().stream()
+                .filter(e -> e.getJugador().getEquipo().getId()
+                        .equals(partido.getEquipoVisitante().getId()))
                 .mapToInt(EstadisticaJugador::getGoles)
                 .sum();
 
-        actualizarStatsPorResultado(partido, golesLocal, golesVisitante);
+        partido.setGolesLocal(golesLocal);
+        partido.setGolesVisitante(golesVisitante);
+
+        if (golesLocal > golesVisitante) {
+            partido.setGanador(partido.getEquipoLocal());
+        } else if (golesVisitante > golesLocal) {
+            partido.setGanador(partido.getEquipoVisitante());
+        } else {
+            partido.setGanador(null); // empate
+        }
 
         partido.setEstado("FINALIZADO");
-        if (golesLocal < golesVisitante) {
-            partido.setGanador(partido.getEquipoVisitante());
+
+        // ===============================
+        // 🔽 ACTUALIZAR EQUIPO_ZONA
+        // ===============================
+
+        EquipoZona ezLocal = equipoZonaRepository
+                .findByZonaIdAndEquipoId(
+                        partido.getZona().getId(),
+                        partido.getEquipoLocal().getId()
+                ).orElseThrow();
+
+        EquipoZona ezVisitante = equipoZonaRepository
+                .findByZonaIdAndEquipoId(
+                        partido.getZona().getId(),
+                        partido.getEquipoVisitante().getId()
+                ).orElseThrow();
+
+        // Partidos jugados
+        ezLocal.setPartidosJugados(ezLocal.getPartidosJugados() + 1);
+        ezVisitante.setPartidosJugados(ezVisitante.getPartidosJugados() + 1);
+
+        // Goles
+        ezLocal.setGolesAFavor(ezLocal.getGolesAFavor() + golesLocal);
+        ezLocal.setGolesEnContra(ezLocal.getGolesEnContra() + golesVisitante);
+
+        ezVisitante.setGolesAFavor(ezVisitante.getGolesAFavor() + golesVisitante);
+        ezVisitante.setGolesEnContra(ezVisitante.getGolesEnContra() + golesLocal);
+
+        // Resultado
+        if (golesLocal > golesVisitante) {
+
+            ezLocal.setGanados(ezLocal.getGanados() + 1);
+            ezLocal.setPuntos(ezLocal.getPuntos() + 3);
+
+            ezVisitante.setPerdidos(ezVisitante.getPerdidos() + 1);
+
+        } else if (golesVisitante > golesLocal) {
+
+            ezVisitante.setGanados(ezVisitante.getGanados() + 1);
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + 3);
+
+            ezLocal.setPerdidos(ezLocal.getPerdidos() + 1);
+
+        } else {
+            // EMPATE
+            ezLocal.setEmpatados(ezLocal.getEmpatados() + 1);
+            ezVisitante.setEmpatados(ezVisitante.getEmpatados() + 1);
+
+            ezLocal.setPuntos(ezLocal.getPuntos() + 1);
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + 1);
         }
 
-        if (golesLocal > golesVisitante){
-            partido.setGanador(partido.getEquipoLocal());
-        }
+        equipoZonaRepository.save(ezLocal);
+        equipoZonaRepository.save(ezVisitante);
 
-
-        return partidoRepository.save(partido);
+        partidoRepository.save(partido);
+        return partido;
     }
+
+
 
 
     // ACTUALIZAR ESTADÍSTICAS DEL TORNEO
@@ -160,4 +227,175 @@ public class PartidoService {
             ez.setPerdidos(ez.getPerdidos() + 1);
         }
     }
+
+
+
+
+    public List<FixtureFechaDTO> obtenerFixturePorZona(Long zonaId) {
+
+        List<Partido> partidos =
+                partidoRepository.findByZonaIdOrderByNumeroFechaAscFechaHoraAsc(zonaId);
+
+        return partidos.stream()
+                .collect(Collectors.groupingBy(
+                        Partido::getNumeroFecha,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ))
+                .entrySet()
+                .stream()
+                .map(entry -> new FixtureFechaDTO(
+                        entry.getKey(),
+                        entry.getValue()
+                                .stream()
+                                .map(PartidoMapper::toDTO)
+                                .toList()
+                ))
+                .toList();
+    }
+    @Transactional
+    public void generarFixtureInicialZona(Long zonaId) {
+
+        Zona zona = zonaRepository.findById(zonaId)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+
+        List<Equipo> equipos = zona.getEquiposZona()
+                .stream()
+                .map(EquipoZona::getEquipo)
+                .distinct()
+                .toList();
+
+        if (equipos.size() < 2) return;
+
+        // no permitir regenerar
+        if (partidoRepository.existsByZonaId(zonaId)) {
+            throw new RuntimeException("El fixture ya fue generado");
+        }
+
+        List<Equipo> lista = new ArrayList<>(equipos);
+
+        boolean impar = lista.size() % 2 != 0;
+        if (impar) lista.add(null); // BYE
+
+        int n = lista.size();
+        int rondas = n - 1;
+
+        for (int ronda = 0; ronda < rondas; ronda++) {
+
+            int numeroFecha = ronda + 1;
+
+            for (int i = 0; i < n / 2; i++) {
+                Equipo a = lista.get(i);
+                Equipo b = lista.get(n - 1 - i);
+
+                if (a == null || b == null) continue;
+
+                Equipo local = (ronda % 2 == 0) ? a : b;
+                Equipo visitante = (ronda % 2 == 0) ? b : a;
+
+                Partido p = new Partido();
+                p.setZona(zona);
+                p.setEquipoLocal(local);
+                p.setEquipoVisitante(visitante);
+                p.setNumeroFecha(numeroFecha);
+                p.setEstado("PENDIENTE");
+
+                partidoRepository.save(p);
+            }
+
+            // rotación clásica
+            Equipo ultimo = lista.remove(lista.size() - 1);
+            lista.add(1, ultimo);
+        }
+    }
+
+
+
+
+
+    @Transactional
+    public void regenerarFixtureZona(Long zonaId) {
+
+        Zona zona = zonaRepository.findById(zonaId)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+
+        // 1️⃣ Partidos finalizados → NO SE TOCAN
+        List<Partido> finalizados =
+                partidoRepository.findByZonaIdAndEstado(zonaId, "FINALIZADO");
+
+        // 2️⃣ Eliminar SOLO pendientes
+        partidoRepository.deleteByZonaIdAndEstado(zonaId, "PENDIENTE");
+
+        // 3️⃣ Equipos actuales
+        List<Equipo> equipos = zona.getEquiposZona()
+                .stream()
+                .map(EquipoZona::getEquipo)
+                .toList();
+
+        if (equipos.size() < 2) return;
+
+        // 4️⃣ Generar round-robin SOLO para pendientes
+        generarPendientesRespetandoFinalizados(zona, equipos);
+    }
+
+    private void generarPendientesRespetandoFinalizados(
+            Zona zona,
+            List<Equipo> equipos
+    ) {
+        List<Equipo> lista = new ArrayList<>(equipos);
+
+        if (lista.size() % 2 != 0) lista.add(null);
+
+        int n = lista.size();
+        int rondas = n - 1;
+
+        int fecha = 1;
+
+        for (int ronda = 0; ronda < rondas; ronda++) {
+
+            for (int i = 0; i < n / 2; i++) {
+                Equipo a = lista.get(i);
+                Equipo b = lista.get(n - 1 - i);
+
+                if (a == null || b == null) continue;
+
+                // 🔒 si ya existe FINALIZADO → NO se crea
+                boolean yaJugado =
+                        partidoRepository.existsFinalizadoEntre(
+                                zona.getId(),
+                                a.getId(),
+                                b.getId()
+                        );
+
+                if (yaJugado) continue;
+
+                // 🔒 si ya existe pendiente → NO se duplica
+                boolean yaExiste =
+                        partidoRepository.existsByZonaIdAndEquipos(
+                                zona.getId(),
+                                a.getId(),
+                                b.getId()
+                        );
+
+                if (yaExiste) continue;
+
+                Partido p = new Partido();
+                p.setZona(zona);
+                p.setEquipoLocal((ronda % 2 == 0) ? a : b);
+                p.setEquipoVisitante((ronda % 2 == 0) ? b : a);
+                p.setNumeroFecha(fecha);
+                p.setEstado("PENDIENTE");
+
+                partidoRepository.save(p);
+            }
+
+            // rotación
+            Equipo ultimo = lista.remove(lista.size() - 1);
+            lista.add(1, ultimo);
+
+            fecha++;
+        }
+    }
+
+
 }

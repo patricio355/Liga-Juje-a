@@ -10,7 +10,9 @@ public class TorneoMapper {
         dto.setId(torneo.getId());
         dto.setNombre(torneo.getNombre());
         dto.setDivision(torneo.getDivision());
-        dto.setEncargado(torneo.getEncargado());
+        dto.setEncargadoEmail(
+                torneo.getEncargado() != null ? torneo.getEncargado().getEmail() : null
+        );
         dto.setEstado(torneo.getEstado());
         dto.setFechaCreacion(torneo.getFechaCreacion());
 
@@ -28,5 +30,13 @@ public class TorneoMapper {
         }
 
         return dto;
+    }
+
+    public static Torneo toEntity(TorneoDTO dto) {
+        Torneo t = new Torneo();
+        t.setNombre(dto.getNombre());
+        t.setDivision(dto.getDivision());
+        t.setEstado(dto.getEstado());
+        return t;
     }
 }

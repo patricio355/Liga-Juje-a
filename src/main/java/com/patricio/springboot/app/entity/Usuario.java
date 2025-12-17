@@ -5,22 +5,27 @@ import jakarta.persistence.*;
 import jdk.jfr.Enabled;
 import lombok.*;
 
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Entity
 @Table(name = "usuarios")
-@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "tipo_usuario")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Usuario {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String nombre;
-    private String contrasenia;
     private String email;
-    private String telefono;
+    private String contrasenia;
     private String dni;
+    private String telefono;
     private String domicilio;
-    private String rol;
+
+    @Column(nullable = false)
+    private String rol; // ADMIN, ENCARGADO, ENCARGADOTORNEO, ARBITRO, VEEDOR
+
+    private boolean activo = true;
 }
+

@@ -8,12 +8,13 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UsuarioDTO {
+
     private Long id;
     private String nombre;
-    private String contrasenia;
     private String email;
-    private String telefono;
     private String dni;
+    private String telefono;
     private String domicilio;
     private String rol;
+    private Boolean activo;
 }

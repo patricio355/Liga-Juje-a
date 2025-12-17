@@ -125,7 +125,7 @@ public class EquipoService {
 
 
 
-            if (!encargado.getRol().equals("ENCARGADO")) {
+            if (!encargado.getRol().equals("ENCARGADOEQUIPO")) {
                 throw new RuntimeException("Este usuario no es un encargado");
             }
 
@@ -193,24 +193,20 @@ public class EquipoService {
         } else {
 
             Usuario usuario = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() ->
-                            new RuntimeException("No existe un usuario con ese email")
-                    );
+                    .orElseThrow(() -> new RuntimeException("No existe un usuario con ese email"));
 
-            if (!"ENCARGADO".equals(usuario.getRol())) {
+            if (!"ENCARGADOEQUIPO".equals(usuario.getRol())) {
                 throw new RuntimeException("El usuario no es un encargado");
             }
 
             boolean yaAsignado = equipoRepository
-                    .existsByEncargadoAndIdNot((Encargado) usuario, id);
+                    .existsByEncargadoAndIdNot(usuario, id);
 
             if (yaAsignado) {
-                throw new RuntimeException(
-                        "Este encargado ya está asignado a otro equipo"
-                );
+                throw new RuntimeException("Este encargado ya está asignado a otro equipo");
             }
 
-            equipo.setEncargado((Encargado) usuario);
+            equipo.setEncargado(usuario);
         }
 
         // ============================

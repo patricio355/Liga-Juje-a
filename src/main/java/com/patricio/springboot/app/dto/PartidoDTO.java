@@ -7,29 +7,41 @@ public class PartidoDTO {
 
     private Long id;
 
+    // Equipos
     private Long equipoLocalId;
     private String equipoLocalNombre;
 
     private Long equipoVisitanteId;
     private String equipoVisitanteNombre;
 
-    private Integer golesLocal;
-    private Integer golesVisitante;
+    private Long ganadorId;
+    private String ganadorNombre;
 
-    private Long canchaId;
-    private String canchaNombre;
-
-    private Long zonaId;
-    private String zonaNombre;
-
-    private Long etapaId;
-    private String etapaNombre;
-
+    // Arbitro
     private Long arbitroId;
     private String arbitroNombre;
 
+    // Cancha
+    private Long canchaId;
+    private String canchaNombre;
+
+    // Zona
+    private Long zonaId;
+    private String zonaNombre;
+
+    // Etapa
+    private Long etapaId;
+    private String etapaNombre;
+
+    private Integer golesLocal;
+    private Integer golesVisitante;
+
+    // Otros
     private String veedor;
 
-    private String fecha; // formato yyyy-MM-dd
+    private String fecha;       // yyyy-MM-dd (LocalDate)
+    private String fechaHora;   // ISO (LocalDateTime)
+
+    private Integer numeroFecha;
     private String estado;
 }

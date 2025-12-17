@@ -20,18 +20,8 @@ public class ResultadoPartidoResponse {
         this.equipoLocal = partido.getEquipoLocal().getNombre();
         this.equipoVisitante = partido.getEquipoVisitante().getNombre();
 
-        // Calcular goles usando stats del partido
-        this.golesLocal = partido.getEstadisticas().stream()
-                .filter(e -> e.getJugador().getEquipo().getId()
-                        .equals(partido.getEquipoLocal().getId()))
-                .mapToInt(e -> e.getGoles())
-                .sum();
-
-        this.golesVisitante = partido.getEstadisticas().stream()
-                .filter(e -> e.getJugador().getEquipo().getId()
-                        .equals(partido.getEquipoVisitante().getId()))
-                .mapToInt(e -> e.getGoles())
-                .sum();
+        this.golesLocal = partido.getGolesLocal();
+        this.golesVisitante = partido.getGolesVisitante();
 
         this.estado = partido.getEstado();
 

@@ -24,7 +24,9 @@ public class Torneo {
     @OneToMany(mappedBy = "torneo", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Zona> zonas;
 
-    private String encargado;
+    @ManyToOne
+    @JoinColumn(name = "encargado_id")
+    private Usuario encargado;
 
     private String estado;
 
