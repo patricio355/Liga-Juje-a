@@ -1,5 +1,6 @@
 package com.patricio.springboot.app.controller;
 
+import com.patricio.springboot.app.dto.FixtureFechaDTO;
 import com.patricio.springboot.app.dto.PartidoCreateDTO;
 import com.patricio.springboot.app.dto.ResultadoPartidoResponse;
 import com.patricio.springboot.app.entity.Partido;
@@ -8,6 +9,8 @@ import com.patricio.springboot.app.service.PartidoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/partidos")
@@ -44,5 +47,31 @@ public class PartidoController {
     }
 
 
+    // 🔹 FIXTURE POR ZONA
+    @GetMapping("/zona/{idZona}/fixture")
+    public List<FixtureFechaDTO> obtenerFixturePorZona(@PathVariable Long idZona) {
+        return partidoService.obtenerFixturePorZona(idZona);
+    }
 
+
+    /**
+     * 🔹 Generar fixture inicial (round-robin limpio)
+     * SOLO se puede ejecutar una vez por zona
+     */
+    @PostMapping("/zona/{zonaId}/fixture")
+    public ResponseEntity<?> generarFixtureInicial(
+            @PathVariable Long zonaId
+    ) {
+        partidoService.generarFixtureInicialZona(zonaId);
+        return ResponseEntity.ok("Fixture generado correctamente");
+    }
+
+
+
+    //regenerar
+    @PostMapping("/zona/{zonaId}/fixture/regenerar")
+    public ResponseEntity<?> regenerarFixture(@PathVariable Long zonaId) {
+        partidoService.regenerarFixtureZona(zonaId);
+        return ResponseEntity.ok("Fixture regenerado correctamente");
+    }
 }

@@ -24,7 +24,7 @@ public class Solicitud {
 
     @ManyToOne
     @JoinColumn(name = "encargado_id")
-    private Encargado encargado;
+    private EncargadoEquipo encargado;
 
     @ManyToOne
     @JoinColumn(name = "alta_jugador_id")

@@ -2,13 +2,14 @@ package com.patricio.springboot.app.entity;
 
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@DiscriminatorValue(value = "Encargado")
+@DiscriminatorValue(value = "Veedor")
 @Getter
 @Setter
 @NoArgsConstructor
-public class Encargado extends Usuario{
+public class Veedor extends Usuario {
 }

@@ -1,6 +1,6 @@
 package com.patricio.springboot.app.dto;
 
-import com.patricio.springboot.app.entity.Encargado;
+import com.patricio.springboot.app.entity.EncargadoEquipo;
 import com.patricio.springboot.app.entity.Zona;
 import lombok.AllArgsConstructor;
 import lombok.Data;

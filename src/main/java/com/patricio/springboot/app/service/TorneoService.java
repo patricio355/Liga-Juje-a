@@ -3,10 +3,12 @@ package com.patricio.springboot.app.service;
 import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.Torneo;
+import com.patricio.springboot.app.entity.Usuario;
 import com.patricio.springboot.app.entity.Zona;
 import com.patricio.springboot.app.mapper.TorneoMapper;
 import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.TorneoRepository;
+import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import org.springframework.stereotype.Service;
 
@@ -20,13 +22,14 @@ import static java.util.stream.Collectors.toList;
 public class TorneoService {
     private TorneoRepository torneoRepository;
     private ZonaRepository zonaRepository;
-
+    private UsuarioRepository usuarioRepository;
     private EquipoZonaRepository equipoZonaRepository;
 
-    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository) {
+    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository) {
         this.torneoRepository = torneoRepository;
         this.zonaRepository = zonaRepository;
         this.equipoZonaRepository = equipoZonaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
     // --------------------------
     // CREAR TORNEO
@@ -34,17 +37,32 @@ public class TorneoService {
 
     public TorneoDTO crearTorneo(TorneoDTO dto) {
 
-        Torneo torneo = new Torneo();
-        torneo.setNombre(dto.getNombre());
-        torneo.setDivision(dto.getDivision());
-        torneo.setEncargado(dto.getEncargado());
-        torneo.setEstado(dto.getEstado());
+        Torneo torneo = TorneoMapper.toEntity(dto);
         torneo.setFechaCreacion(LocalDate.now());
 
-        torneo = torneoRepository.save(torneo);
+        String email = dto.getEncargadoEmail();
 
-        return toDTO(torneo);
+        if (email != null && !email.isBlank()) {
+
+            if (!email.contains("@")) {
+                throw new RuntimeException("Email inválido");
+            }
+
+            Usuario encargado = usuarioRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new RuntimeException("No existe usuario con ese email")
+                    );
+
+            if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
+                throw new RuntimeException("El usuario no es encargado de torneo");
+            }
+
+            torneo.setEncargado(encargado);
+        }
+
+        return TorneoMapper.toDTO(torneoRepository.save(torneo));
     }
+
 
     // --------------------------
     // LISTAR TORNEOS
@@ -74,15 +92,39 @@ public class TorneoService {
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
+        // =========================
+        // DATOS BÁSICOS
+        // =========================
         torneo.setNombre(dto.getNombre());
         torneo.setDivision(dto.getDivision());
-        torneo.setEncargado(dto.getEncargado());
         torneo.setEstado(dto.getEstado());
 
-        torneoRepository.save(torneo);
+        // =========================
+        // MANEJO ENCARGADO TORNEO
+        // =========================
+        String email = dto.getEncargadoEmail();
 
-        return toDTO(torneo);
+        if (email == null || email.isBlank()) {
+            // quitar encargado
+            torneo.setEncargado(null);
+
+        } else {
+            Usuario encargado = usuarioRepository.findByEmail(email)
+                    .orElseThrow(() ->
+                            new RuntimeException("No existe usuario con ese email")
+                    );
+
+            if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
+                throw new RuntimeException("El usuario no es encargado de torneo");
+            }
+
+            torneo.setEncargado(encargado);
+        }
+
+        Torneo actualizado = torneoRepository.save(torneo);
+        return TorneoMapper.toDTO(actualizado);
     }
+
 
     // --------------------------
     // ELIMINAR TORNEO

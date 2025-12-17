@@ -1,6 +1,7 @@
 package com.patricio.springboot.app.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -51,4 +52,10 @@ public class Partido {
     private String veedor;
     private LocalDate fecha;
     private String estado;
+
+    private Integer golesLocal;
+    private Integer golesVisitante;
+
+    private LocalDateTime fechaHora;
+    private Integer numeroFecha;
 }
