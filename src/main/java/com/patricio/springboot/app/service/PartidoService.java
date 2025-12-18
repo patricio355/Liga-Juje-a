@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +27,8 @@ public class PartidoService {
     private final EquipoRepository equipoRepository;
     private final CanchaRepository canchaRepository;
     private final ZonaRepository zonaRepository;
+    private final EstadisticaJugadorRepository estadisticaRepo;
+    private final SolicitudCierrePartidoRepository solicitudRepo;
 
 
 
@@ -397,5 +400,156 @@ public class PartidoService {
         }
     }
 
+    @Transactional
+    public void cerrarPartidoDirecto(
+            Long partidoId,
+            Integer golesLocal,
+            Integer golesVisitante
+    ) {
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
+
+        // 🔒 Evitar cerrar dos veces
+        if ("FINALIZADO".equals(partido.getEstado())) {
+            throw new RuntimeException("El partido ya está cerrado");
+        }
+
+        // 🧠 Validación opcional (recomendada)
+        // Si hubo goles, deben existir estadísticas
+//        int totalGoles = golesLocal + golesVisitante;
+//        if (totalGoles > 0 && partido.getEstadisticas().isEmpty()) {
+//            throw new RuntimeException("No hay estadísticas cargadas");
+//        }
+
+        // ===============================
+        // 🏁 CERRAR PARTIDO
+        // ===============================
+        partido.setGolesLocal(golesLocal);
+        partido.setGolesVisitante(golesVisitante);
+        partido.setEstado("FINALIZADO");
+
+        if (golesLocal > golesVisitante) {
+            partido.setGanador(partido.getEquipoLocal());
+        } else if (golesVisitante > golesLocal) {
+            partido.setGanador(partido.getEquipoVisitante());
+        } else {
+            partido.setGanador(null); // empate
+        }
+
+        // ===============================
+        // 🔽 ACTUALIZAR EQUIPO_ZONA
+        // ===============================
+
+        EquipoZona ezLocal = equipoZonaRepository
+                .findByZonaIdAndEquipoId(
+                        partido.getZona().getId(),
+                        partido.getEquipoLocal().getId()
+                ).orElseThrow(() ->
+                        new RuntimeException("Equipo local no pertenece a la zona")
+                );
+
+        EquipoZona ezVisitante = equipoZonaRepository
+                .findByZonaIdAndEquipoId(
+                        partido.getZona().getId(),
+                        partido.getEquipoVisitante().getId()
+                ).orElseThrow(() ->
+                        new RuntimeException("Equipo visitante no pertenece a la zona")
+                );
+
+        // Partidos jugados
+        ezLocal.setPartidosJugados(ezLocal.getPartidosJugados() + 1);
+        ezVisitante.setPartidosJugados(ezVisitante.getPartidosJugados() + 1);
+
+        // Goles
+        ezLocal.setGolesAFavor(ezLocal.getGolesAFavor() + golesLocal);
+        ezLocal.setGolesEnContra(ezLocal.getGolesEnContra() + golesVisitante);
+
+        ezVisitante.setGolesAFavor(ezVisitante.getGolesAFavor() + golesVisitante);
+        ezVisitante.setGolesEnContra(ezVisitante.getGolesEnContra() + golesLocal);
+
+        // Resultado
+        if (golesLocal > golesVisitante) {
+
+            ezLocal.setGanados(ezLocal.getGanados() + 1);
+            ezLocal.setPuntos(ezLocal.getPuntos() + 3);
+
+            ezVisitante.setPerdidos(ezVisitante.getPerdidos() + 1);
+
+        } else if (golesVisitante > golesLocal) {
+
+            ezVisitante.setGanados(ezVisitante.getGanados() + 1);
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + 3);
+
+            ezLocal.setPerdidos(ezLocal.getPerdidos() + 1);
+
+        } else {
+            // EMPATE
+            ezLocal.setEmpatados(ezLocal.getEmpatados() + 1);
+            ezVisitante.setEmpatados(ezVisitante.getEmpatados() + 1);
+
+            ezLocal.setPuntos(ezLocal.getPuntos() + 1);
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + 1);
+        }
+
+        // ===============================
+        // 💾 GUARDAR TODO
+        // ===============================
+        equipoZonaRepository.save(ezLocal);
+        equipoZonaRepository.save(ezVisitante);
+        partidoRepository.save(partido);
+    }
+
+
+    @Transactional
+    public void solicitarCierre(
+            Long partidoId,
+            Usuario solicitante,
+            Integer golesLocal,
+            Integer golesVisitante
+    ) {
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow();
+
+        if (solicitudRepo.existsByPartidoAndEstado(
+                partido, "PENDIENTE")) {
+            throw new RuntimeException("Ya existe una solicitud pendiente");
+        }
+
+        SolicitudCierrePartido solicitud =
+                new SolicitudCierrePartido();
+
+        solicitud.setPartido(partido);
+        solicitud.setSolicitante(solicitante);
+        solicitud.setGolesLocal(golesLocal);
+        solicitud.setGolesVisitante(golesVisitante);
+        solicitud.setEstado("PENDIENTE");
+        solicitud.setFechaSolicitud(LocalDateTime.now());
+
+        solicitudRepo.save(solicitud);
+    }
+
+    @Transactional
+    public void aprobarSolicitud(Long solicitudId) {
+        SolicitudCierrePartido solicitud =
+                solicitudRepo.findById(solicitudId).orElseThrow();
+
+        cerrarPartidoDirecto(
+                solicitud.getPartido().getId(),
+                solicitud.getGolesLocal(),
+                solicitud.getGolesVisitante()
+        );
+
+        solicitud.setEstado("APROBADA");
+        solicitudRepo.save(solicitud);
+    }
+
+    @Transactional
+    public void rechazarSolicitud(Long solicitudId) {
+        SolicitudCierrePartido solicitud =
+                solicitudRepo.findById(solicitudId).orElseThrow();
+
+        solicitud.setEstado("RECHAZADA");
+        solicitudRepo.save(solicitud);
+    }
 
 }
