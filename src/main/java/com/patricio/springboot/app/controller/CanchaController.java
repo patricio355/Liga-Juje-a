@@ -57,7 +57,7 @@ public class CanchaController {
         return cancha.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+
     @PostMapping
     @Operation()
     public ResponseEntity<CanchaDTO> crearCancha(@RequestBody CanchaDTO cancha) {
