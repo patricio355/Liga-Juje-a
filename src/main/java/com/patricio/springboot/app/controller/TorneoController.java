@@ -1,7 +1,10 @@
 package com.patricio.springboot.app.controller;
 
+import com.patricio.springboot.app.dto.EquipoZonaDTO;
 import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
+import com.patricio.springboot.app.service.EquipoService;
+import com.patricio.springboot.app.service.EquipoZonaService;
 import com.patricio.springboot.app.service.TorneoService;
 import com.patricio.springboot.app.service.ZonaService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,6 +24,7 @@ public class TorneoController {
 
     private final TorneoService torneoService;
     private final ZonaService zonaService;
+    private final EquipoZonaService equipoZonaService;
 
 
     // ---------------------------------------------------------
@@ -96,5 +100,15 @@ public class TorneoController {
     @GetMapping("/zonas/torneo/{torneoId}")
     public List<ZonaDTO> listarZonas(@PathVariable Long torneoId) {
         return zonaService.listarPorTorneo(torneoId);
+    }
+
+    // 1. Inscribir un equipo a una zona
+    @PostMapping("/inscribir/{equipoId}/zona/{zonaId}")
+    public ResponseEntity<EquipoZonaDTO> inscribir(
+            @PathVariable Long equipoId,
+            @PathVariable Long zonaId
+    ) {
+        EquipoZonaDTO dto = torneoService.agregarEquipoAZona(equipoId, zonaId);
+        return ResponseEntity.ok(dto);
     }
 }

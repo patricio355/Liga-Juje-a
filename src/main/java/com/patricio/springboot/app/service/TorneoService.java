@@ -1,15 +1,15 @@
 package com.patricio.springboot.app.service;
 
+import com.patricio.springboot.app.dto.EquipoZonaDTO;
 import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
-import com.patricio.springboot.app.entity.Torneo;
-import com.patricio.springboot.app.entity.Usuario;
-import com.patricio.springboot.app.entity.Zona;
+import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.TorneoMapper;
 import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.TorneoRepository;
 import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,16 +20,22 @@ import static java.util.stream.Collectors.toList;
 
 @Service
 public class TorneoService {
+    private final EquipoService equipoService;
     private TorneoRepository torneoRepository;
     private ZonaRepository zonaRepository;
     private UsuarioRepository usuarioRepository;
     private EquipoZonaRepository equipoZonaRepository;
+    private EquipoZonaService equipoZonaService;
+    private PartidoService partidoService;
 
-    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository) {
+    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository, EquipoZonaService equipoZonaService, PartidoService partidoService, EquipoService equipoService) {
         this.torneoRepository = torneoRepository;
         this.zonaRepository = zonaRepository;
         this.equipoZonaRepository = equipoZonaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.equipoZonaService = equipoZonaService;
+        this.partidoService = partidoService;
+        this.equipoService = equipoService;
     }
     // --------------------------
     // CREAR TORNEO
@@ -186,25 +192,48 @@ public class TorneoService {
 
     public List<TorneoDTO> torneosDisponiblesParaEquipo(Long equipoId) {
 
-        // Torneos donde el equipo ya participa
         List<Long> torneosInscripto =
                 equipoZonaRepository.findTorneoIdsByEquipoId(equipoId);
 
-        // Si no participa en ninguno → todos los torneos ACTIVOS
+        // 🔹 Si no participa en ninguno → todos los torneos activos y abiertos
         if (torneosInscripto.isEmpty()) {
-            return torneoRepository.findByEstado("activo")
+            return torneoRepository
+                    .findByEstadoAndTipo("activo", "ABIERTO")
                     .stream()
                     .map(TorneoMapper::toDTO)
                     .toList();
         }
 
-        // Torneos ACTIVOS donde NO participa
+        // 🔹 Torneos activos, abiertos y donde NO participa
         return torneoRepository
-                .findByEstadoAndIdNotIn("activo", torneosInscripto)
+                .findByEstadoAndTipoAndIdNotIn(
+                        "activo",
+                        "ABIERTO",
+                        torneosInscripto
+                )
                 .stream()
                 .map(TorneoMapper::toDTO)
                 .toList();
     }
 
 
+    @Transactional
+    public EquipoZonaDTO agregarEquipoAZona(Long equipoId, Long zonaId) {
+
+        //  Inscribir equipo en la zona
+        EquipoZonaDTO dto = equipoZonaService.inscribirEquipo(equipoId, zonaId);
+
+        //  Obtener zona + torneo
+        Zona zona = zonaRepository.findById(zonaId)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+
+        Torneo torneo = zona.getTorneo();
+
+        //  Regenerar fixture SOLO si el torneo es ABIERTO
+        if ("ABIERTO".equalsIgnoreCase(torneo.getTipo())) {
+            partidoService.regenerarFixtureZona(zonaId);
+        }
+
+        return dto;
+    }
 }

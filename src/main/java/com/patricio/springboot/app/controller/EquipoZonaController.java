@@ -19,15 +19,7 @@ public class EquipoZonaController {
         this.equipoZonaService = equipoZonaService;
     }
 
-    // 1. Inscribir un equipo a una zona
-    @PostMapping("/inscribir/{equipoId}/zona/{zonaId}")
-    public ResponseEntity<EquipoZonaDTO> inscribir(
-            @PathVariable Long equipoId,
-            @PathVariable Long zonaId
-    ) {
-        EquipoZonaDTO dto = equipoZonaService.inscribirEquipo(equipoId, zonaId);
-        return ResponseEntity.ok(dto);
-    }
+
 
     // 2. Listar equipos de una zona
     @GetMapping("/zona/{zonaId}/equipos")

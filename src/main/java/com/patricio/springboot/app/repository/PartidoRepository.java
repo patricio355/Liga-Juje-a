@@ -79,4 +79,22 @@ WHERE p.zona.id = :zonaId
     List<Partido> findByZonaIdAndEstado(Long zonaId, String finalizado);
 
     void deleteByZonaIdAndEstado(Long zonaId, String pendiente);
+
+    @Query("""
+    select count(p) > 0
+    from Partido p
+    where p.zona.id = :zonaId
+      and (
+        (p.equipoLocal.id = :a and p.equipoVisitante.id = :b)
+        or
+        (p.equipoLocal.id = :b and p.equipoVisitante.id = :a)
+      )
+""")
+    boolean existsEntreEquipos(Long zonaId, Long a, Long b);
+
+
+
+    @Query("select max(p.numeroFecha) from Partido p where p.zona.id = :zonaId")
+    Optional<Integer> findMaxNumeroFechaByZonaId(Long zonaId);
+
 }

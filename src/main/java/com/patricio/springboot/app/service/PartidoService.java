@@ -29,7 +29,7 @@ public class PartidoService {
     private final ZonaRepository zonaRepository;
     private final EstadisticaJugadorRepository estadisticaRepo;
     private final SolicitudCierrePartidoRepository solicitudRepo;
-
+    private final ProgramacionFechaRepository programacionRepo;
 
 
 
@@ -322,14 +322,6 @@ public class PartidoService {
         Zona zona = zonaRepository.findById(zonaId)
                 .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
 
-        // 1️⃣ Partidos finalizados → NO SE TOCAN
-        List<Partido> finalizados =
-                partidoRepository.findByZonaIdAndEstado(zonaId, "FINALIZADO");
-
-        // 2️⃣ Eliminar SOLO pendientes
-        partidoRepository.deleteByZonaIdAndEstado(zonaId, "PENDIENTE");
-
-        // 3️⃣ Equipos actuales
         List<Equipo> equipos = zona.getEquiposZona()
                 .stream()
                 .map(EquipoZona::getEquipo)
@@ -337,13 +329,17 @@ public class PartidoService {
 
         if (equipos.size() < 2) return;
 
-        // 4️⃣ Generar round-robin SOLO para pendientes
-        generarPendientesRespetandoFinalizados(zona, equipos);
-    }
+        // 🔹 Última fecha existente
+        Integer ultimaFecha =
+                partidoRepository.findMaxNumeroFechaByZonaId(zonaId)
+                        .orElse(0);
 
-    private void generarPendientesRespetandoFinalizados(
+        generarPartidosFaltantes(zona, equipos, ultimaFecha + 1);
+    }
+    private void generarPartidosFaltantes(
             Zona zona,
-            List<Equipo> equipos
+            List<Equipo> equipos,
+            int fechaInicial
     ) {
         List<Equipo> lista = new ArrayList<>(equipos);
 
@@ -351,10 +347,11 @@ public class PartidoService {
 
         int n = lista.size();
         int rondas = n - 1;
-
-        int fecha = 1;
+        int fecha = fechaInicial;
 
         for (int ronda = 0; ronda < rondas; ronda++) {
+
+            boolean creoAlgoEnFecha = false;
 
             for (int i = 0; i < n / 2; i++) {
                 Equipo a = lista.get(i);
@@ -362,43 +359,37 @@ public class PartidoService {
 
                 if (a == null || b == null) continue;
 
-                // 🔒 si ya existe FINALIZADO → NO se crea
-                boolean yaJugado =
-                        partidoRepository.existsFinalizadoEntre(
+                // 🔹 Si ya existe partido entre A y B → no crear
+                boolean existe =
+                        partidoRepository.existsEntreEquipos(
                                 zona.getId(),
                                 a.getId(),
                                 b.getId()
                         );
 
-                if (yaJugado) continue;
-
-                // 🔒 si ya existe pendiente → NO se duplica
-                boolean yaExiste =
-                        partidoRepository.existsByZonaIdAndEquipos(
-                                zona.getId(),
-                                a.getId(),
-                                b.getId()
-                        );
-
-                if (yaExiste) continue;
+                if (existe) continue;
 
                 Partido p = new Partido();
                 p.setZona(zona);
-                p.setEquipoLocal((ronda % 2 == 0) ? a : b);
-                p.setEquipoVisitante((ronda % 2 == 0) ? b : a);
+                p.setEquipoLocal(a);
+                p.setEquipoVisitante(b);
                 p.setNumeroFecha(fecha);
                 p.setEstado("PENDIENTE");
 
                 partidoRepository.save(p);
+                creoAlgoEnFecha = true;
             }
 
-            // rotación
+            if (creoAlgoEnFecha) {
+                fecha++;
+            }
+
+            // rotación round-robin
             Equipo ultimo = lista.remove(lista.size() - 1);
             lista.add(1, ultimo);
-
-            fecha++;
         }
     }
+
 
     @Transactional
     public void cerrarPartidoDirecto(
@@ -414,7 +405,7 @@ public class PartidoService {
             throw new RuntimeException("El partido ya está cerrado");
         }
 
-        // 🧠 Validación opcional (recomendada)
+        //  Validación opcional (recomendada)
         // Si hubo goles, deben existir estadísticas
 //        int totalGoles = golesLocal + golesVisitante;
 //        if (totalGoles > 0 && partido.getEstadisticas().isEmpty()) {
@@ -436,8 +427,18 @@ public class PartidoService {
             partido.setGanador(null); // empate
         }
 
+
+
+        ProgramacionFecha programacionFecha = programacionRepo
+                .findByPartidoId(partido.getId())
+                .orElseThrow(()->
+                        new RuntimeException("Programacion no encontrada"));
+
+        programacionFecha.setEstado("FINALIZADO");
+
+
         // ===============================
-        // 🔽 ACTUALIZAR EQUIPO_ZONA
+        // ACTUALIZAR EQUIPO_ZONA
         // ===============================
 
         EquipoZona ezLocal = equipoZonaRepository

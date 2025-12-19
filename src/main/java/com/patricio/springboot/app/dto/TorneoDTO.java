@@ -16,4 +16,5 @@ public class TorneoDTO {
     private String estado;
     private LocalDate fechaCreacion;
     private List<ZonaDTO> zonas;
+    private String tipo;
 }

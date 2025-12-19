@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProgramacionFechaRepository
@@ -82,4 +83,6 @@ public interface ProgramacionFechaRepository
 
 
     List<ProgramacionFecha> findByZonaId(Long zonaId);
+
+    Optional<ProgramacionFecha> findByPartidoId(Long partidoId);
 }
