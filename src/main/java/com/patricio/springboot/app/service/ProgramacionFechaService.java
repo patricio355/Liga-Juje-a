@@ -120,7 +120,6 @@ public class ProgramacionFechaService {
     }
 
 
-    // 📅 3️⃣ Programación confirmada
     public List<PartidoProgramadoDTO> obtenerProgramacion(
             Long zonaId,
             Integer fecha
@@ -129,13 +128,20 @@ public class ProgramacionFechaService {
                 .findByZonaIdAndNumeroFecha(zonaId, fecha)
                 .stream()
                 .map(pf -> {
+
                     Partido p = pf.getPartido();
-                    PartidoProgramadoDTO dto =
-                            new PartidoProgramadoDTO();
+
+                    PartidoProgramadoDTO dto = new PartidoProgramadoDTO();
                     dto.setProgramacionId(pf.getId());
                     dto.setPartidoId(p.getId());
+
                     dto.setLocal(p.getEquipoLocal().getNombre());
                     dto.setVisitante(p.getEquipoVisitante().getNombre());
+
+                    dto.setGolesLocal(p.getGolesLocal());
+                    dto.setGolesVisitante(p.getGolesVisitante());
+                    dto.setEstado(p.getEstado());
+
                     dto.setFecha(
                             pf.getFecha() != null ? pf.getFecha().toString() : null
                     );
@@ -147,9 +153,11 @@ public class ProgramacionFechaService {
                                     ? pf.getCancha().getNombre()
                                     : null
                     );
+
                     return dto;
                 })
                 .toList();
     }
+
 }
 

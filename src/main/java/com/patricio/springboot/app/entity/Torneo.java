@@ -31,4 +31,6 @@ public class Torneo {
     private String estado;
 
     private LocalDate fechaCreacion;
+
+    private String tipo;
 }

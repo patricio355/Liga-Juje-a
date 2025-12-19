@@ -14,4 +14,11 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
     Optional<Torneo> findById(Long id);
     List<Torneo> findByEstado(String estado);
     List<Torneo> findByIdNotIn(List<Long> ids);
+    List<Torneo> findByEstadoAndTipo(String estado, String tipo);
+
+    List<Torneo> findByEstadoAndTipoAndIdNotIn(
+            String estado,
+            String tipo,
+            List<Long> ids
+    );
 }

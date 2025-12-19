@@ -51,6 +51,8 @@ public class EquipoZonaService {
         relacion.setTorneoId(torneoId);
         relacion.setNombreEquipo(equipo.getNombre());
 
+
+
         EquipoZona guardado = equipoZonaRepository.save(relacion);
 
         return EquipoZonaMapper.toDTO(guardado);
