@@ -59,7 +59,7 @@ public class SecurityConfig {
                 Arrays.asList(
                         "http://localhost:5173",
                         "https://*.railway.app", // Permite subdominios de Railway
-                        "https://tu-frontend.vercel.app" // Agregaremos la de Vercel luego
+                        "https://liga-juje-a-front.vercel.app" // Agregaremos la de Vercel luego
                 )
         );
         config.setAllowedMethods(
