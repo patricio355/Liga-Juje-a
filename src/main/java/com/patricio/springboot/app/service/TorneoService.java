@@ -264,19 +264,24 @@ public class TorneoService {
                 .toList();
     }
 
-
     @Transactional(readOnly = true)
     public TorneoDTO obtenerPorId(Long id) {
-        // 1. Buscamos el torneo
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
-        // 2. Obtener el email del usuario que está logueado actualmente (Spring Security)
-        String emailUsuarioAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String emailUsuarioAutenticado = auth.getName();
 
-        // 3. VALIDACIÓN DE SEGURIDAD:
-        // Comparamos el email del encargado del torneo con el del usuario actual
-        if (!torneo.getEncargado().getEmail().equals(emailUsuarioAutenticado)) {
+        boolean esAdminGlobal = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        // FIX: Verificamos primero si existe el encargado
+        boolean esDuenio = false;
+        if (torneo.getEncargado() != null) {
+            esDuenio = torneo.getEncargado().getEmail().equalsIgnoreCase(emailUsuarioAutenticado);
+        }
+
+        if (!esAdminGlobal && !esDuenio) {
             throw new AccessDeniedException("No tienes permiso para gestionar este torneo.");
         }
 

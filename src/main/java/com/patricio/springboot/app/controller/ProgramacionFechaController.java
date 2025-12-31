@@ -41,4 +41,9 @@ public class ProgramacionFechaController {
     ) {
         return service.obtenerProgramacion(zonaId, fecha);
     }
+
+    @GetMapping("/zona/{zonaId}/fechas-disponibles")
+    public List<Integer> getFechas(@PathVariable Long zonaId) {
+        return service.obtenerFechasDisponibles(zonaId);
+    }
 }

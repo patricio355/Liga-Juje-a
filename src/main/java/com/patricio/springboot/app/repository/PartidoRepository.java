@@ -97,4 +97,11 @@ WHERE p.zona.id = :zonaId
     @Query("select max(p.numeroFecha) from Partido p where p.zona.id = :zonaId")
     Optional<Integer> findMaxNumeroFechaByZonaId(Long zonaId);
 
+    @Query("SELECT DISTINCT p.numeroFecha FROM Partido p " +
+            "WHERE p.zona.id = :zonaId " +
+            "AND p.equipoLocal IS NOT NULL " + // Filtra solo partidos con equipos reales
+            "AND p.equipoVisitante IS NOT NULL " +
+            "ORDER BY p.numeroFecha ASC")
+    List<Integer> findDistinctNumeroFechaByZonaId(@Param("zonaId") Long zonaId);
+
 }
