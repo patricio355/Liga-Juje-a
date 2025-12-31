@@ -54,17 +54,21 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(
-                Arrays.asList("http://localhost:5173")
+        // Agregamos "*" para pruebas o las URLs específicas
+        config.setAllowedOriginPatterns(
+                Arrays.asList(
+                        "http://localhost:5173",
+                        "https://*.railway.app", // Permite subdominios de Railway
+                        "https://tu-frontend.vercel.app" // Agregaremos la de Vercel luego
+                )
         );
         config.setAllowedMethods(
                 Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")
         );
-        config.setAllowedHeaders(Arrays.asList("*"));
-        config.setExposedHeaders(Arrays.asList("*"));
+        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        config.setExposedHeaders(Arrays.asList("Authorization"));
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
         return source;
