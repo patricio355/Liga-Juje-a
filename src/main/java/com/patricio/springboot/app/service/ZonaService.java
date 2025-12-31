@@ -5,7 +5,9 @@ import com.patricio.springboot.app.entity.Zona;
 import com.patricio.springboot.app.mapper.ZonaMapper;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -42,5 +44,15 @@ public class ZonaService {
         Zona actualizada = zonaRepository.save(zona);
 
         return ZonaMapper.toDTO(actualizada);
+    }
+
+    @Transactional(readOnly = true)
+    public ZonaDTO obtenerPorId(Long id) {
+        // 1. Buscar la zona en la base de datos
+        Zona zona = zonaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada con ID: " + id));
+
+
+        return ZonaMapper.toDTO(zona);
     }
 }

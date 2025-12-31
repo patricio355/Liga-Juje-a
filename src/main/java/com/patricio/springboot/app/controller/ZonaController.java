@@ -26,4 +26,9 @@ public class ZonaController {
     ) {
         return ResponseEntity.ok(zonaService.editarZona(id, dto));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ZonaDTO> obtenerZona(@PathVariable Long id) {
+        return ResponseEntity.ok(zonaService.obtenerPorId(id));
+    }
 }

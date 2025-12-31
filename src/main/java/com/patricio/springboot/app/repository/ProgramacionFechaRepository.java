@@ -85,4 +85,8 @@ public interface ProgramacionFechaRepository
     List<ProgramacionFecha> findByZonaId(Long zonaId);
 
     Optional<ProgramacionFecha> findByPartidoId(Long partidoId);
+
+    @Query(value = "SELECT DISTINCT numero_fecha FROM programacion_fecha WHERE zona_id = :zonaId ORDER BY numero_fecha ASC",
+            nativeQuery = true)
+    List<Integer> findDistinctFechasByZonaId(@Param("zonaId") Long zonaId);
 }

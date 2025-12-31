@@ -553,4 +553,9 @@ public class PartidoService {
         solicitudRepo.save(solicitud);
     }
 
+    public List<Integer> obtenerFechasConPartidos(Long zonaId) {
+        // Ahora solo devolverá [1, 2] si solo hay partidos en esas fechas
+        return partidoRepository.findDistinctNumeroFechaByZonaId(zonaId);
+    }
+
 }

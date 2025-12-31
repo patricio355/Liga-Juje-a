@@ -143,4 +143,10 @@ public class PartidoController {
         partidoService.rechazarSolicitud(id);
         return ResponseEntity.ok("Solicitud rechazada");
     }
+
+    @GetMapping("/zona/{zonaId}/fechas-disponibles")
+    public ResponseEntity<List<Integer>> getFechas(@PathVariable Long zonaId) {
+        List<Integer> fechas = partidoService.obtenerFechasConPartidos(zonaId);
+        return ResponseEntity.ok(fechas);
+    }
 }

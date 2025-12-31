@@ -159,5 +159,11 @@ public class ProgramacionFechaService {
                 .toList();
     }
 
+
+
+    public List<Integer> obtenerFechasDisponibles(Long zonaId) {
+        return programacionRepository.findDistinctFechasByZonaId(zonaId);
+    }
+
 }
 
