@@ -14,6 +14,7 @@ import java.util.List;
 
 public class EquipoDTO {
     private Long id;
+    private Long equipoZonaId;
     private String nombre;
     private String localidad;
     private String escudo;
@@ -27,4 +28,7 @@ public class EquipoDTO {
     private Long zonaId;
     private Long canchaId;
     private String encargadoEmail;
+
+    public EquipoDTO(Long id, String nombre, String escudo) {
+    }
 }
