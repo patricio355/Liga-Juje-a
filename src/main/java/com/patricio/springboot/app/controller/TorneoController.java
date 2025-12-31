@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,9 +32,15 @@ public class TorneoController {
     // ---------------------------------------------------------
     // CREAR TORNEO
     // ---------------------------------------------------------
+    @PreAuthorize("hasAnyRole('ADMIN','ENCARGADOTORNEO')")
     @PostMapping
-    public ResponseEntity<TorneoDTO> crear(@RequestBody TorneoDTO dto) {
-        return ResponseEntity.ok(torneoService.crearTorneo(dto));
+    public ResponseEntity<TorneoDTO> crear(
+            @RequestBody TorneoDTO dto,
+            Authentication auth
+    ) {
+        return ResponseEntity.ok(
+                torneoService.crearTorneo(dto, auth)
+        );
     }
 
     // ---------------------------------------------------------
@@ -49,7 +57,7 @@ public class TorneoController {
     }
 
 
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @GetMapping("/disponibles/equipo/{equipoId}")
     public List<TorneoDTO> torneosDisponibles(@PathVariable Long equipoId) {
         return torneoService.torneosDisponiblesParaEquipo(equipoId);
@@ -58,17 +66,21 @@ public class TorneoController {
     // ---------------------------------------------------------
     // MODIFICAR TORNEO
     // ---------------------------------------------------------
+    @PreAuthorize("hasAnyRole('ADMIN','ENCARGADOTORNEO')")
     @PutMapping("/{id}")
     public ResponseEntity<TorneoDTO> modificar(
             @PathVariable Long id,
-            @RequestBody TorneoDTO dto
+            @RequestBody TorneoDTO dto,
+            Authentication auth
     ) {
-        return ResponseEntity.ok(torneoService.modificarTorneo(id, dto));
+        return ResponseEntity.ok(
+                torneoService.modificarTorneo(id, dto, auth)
+        );
     }
-
     // ---------------------------------------------------------
     // ELIMINAR (SOFT DELETE = cambiar estado)
     // ---------------------------------------------------------
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         torneoService.eliminarTorneo(id);
@@ -78,6 +90,7 @@ public class TorneoController {
     // ---------------------------------------------------------
     // AGREGAR ZONA A UN TORNEO
     // ---------------------------------------------------------
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @PostMapping("/{idTorneo}/zonas")
     public ResponseEntity<TorneoDTO> agregarZona(
             @PathVariable Long idTorneo,
@@ -89,6 +102,7 @@ public class TorneoController {
     // ---------------------------------------------------------
     // QUITAR ZONA DE UN TORNEO
     // ---------------------------------------------------------
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @DeleteMapping("/{idTorneo}/zonas/{idZona}")
     public ResponseEntity<TorneoDTO> quitarZona(
             @PathVariable Long idTorneo,
@@ -103,6 +117,7 @@ public class TorneoController {
     }
 
     // 1. Inscribir un equipo a una zona
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @PostMapping("/inscribir/{equipoId}/zona/{zonaId}")
     public ResponseEntity<EquipoZonaDTO> inscribir(
             @PathVariable Long equipoId,
@@ -110,5 +125,37 @@ public class TorneoController {
     ) {
         EquipoZonaDTO dto = torneoService.agregarEquipoAZona(equipoId, zonaId);
         return ResponseEntity.ok(dto);
+    }
+
+
+    @GetMapping("/mis-torneos")
+    @PreAuthorize("hasRole('ENCARGADOTORNEO')")
+    public List<TorneoDTO> misTorneos(Authentication authentication) {
+        String email = authentication.getName();
+        return torneoService.listarTorneosDelEncargado(email);
+    }
+
+    @GetMapping("/dashboard")
+    @PreAuthorize("hasAnyRole('ADMIN','ENCARGADOTORNEO')")
+    public ResponseEntity<List<TorneoDTO>> dashboard(Authentication auth) {
+
+        boolean esAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (esAdmin) {
+            return ResponseEntity.ok(torneoService.listarTorneos());
+        }
+
+        return ResponseEntity.ok(
+                torneoService.listarTorneosDelEncargado(auth.getName())
+        );
+    }
+
+    // En TorneoController.java
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TorneoDTO> obtenerPorId(@PathVariable Long id) {
+        // Asegúrate de que el service tenga implementado obtenerPorId
+        return ResponseEntity.ok(torneoService.obtenerPorId(id));
     }
 }

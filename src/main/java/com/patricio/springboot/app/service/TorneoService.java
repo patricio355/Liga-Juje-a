@@ -9,7 +9,11 @@ import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.TorneoRepository;
 import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
+import org.jspecify.annotations.Nullable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -40,21 +44,31 @@ public class TorneoService {
     // --------------------------
     // CREAR TORNEO
     // --------------------------
-
-    public TorneoDTO crearTorneo(TorneoDTO dto) {
+    public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
         Torneo torneo = TorneoMapper.toEntity(dto);
         torneo.setFechaCreacion(LocalDate.now());
 
-        String email = dto.getEncargadoEmail();
+        boolean esAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        if (email != null && !email.isBlank()) {
+        String emailEncargado;
 
-            if (!email.contains("@")) {
+        if (esAdmin) {
+            // ADMIN puede elegir encargado
+            emailEncargado = dto.getEncargadoEmail();
+        } else {
+            // 🔒 ENCARGADO → SIEMPRE él mismo
+            emailEncargado = auth.getName();
+        }
+
+        if (emailEncargado != null && !emailEncargado.isBlank()) {
+
+            if (!emailEncargado.contains("@")) {
                 throw new RuntimeException("Email inválido");
             }
 
-            Usuario encargado = usuarioRepository.findByEmail(email)
+            Usuario encargado = usuarioRepository.findByEmail(emailEncargado)
                     .orElseThrow(() ->
                             new RuntimeException("No existe usuario con ese email")
                     );
@@ -92,8 +106,7 @@ public class TorneoService {
     // --------------------------
     // MODIFICAR TORNEO
     // --------------------------
-
-    public TorneoDTO modificarTorneo(Long id, TorneoDTO dto) {
+    public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
 
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
@@ -104,28 +117,34 @@ public class TorneoService {
         torneo.setNombre(dto.getNombre());
         torneo.setDivision(dto.getDivision());
         torneo.setEstado(dto.getEstado());
+        torneo.setTipo(dto.getTipo());
+
+        boolean esAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         // =========================
         // MANEJO ENCARGADO TORNEO
         // =========================
-        String email = dto.getEncargadoEmail();
+        if (esAdmin) {
 
-        if (email == null || email.isBlank()) {
-            // quitar encargado
-            torneo.setEncargado(null);
+            String email = dto.getEncargadoEmail();
 
-        } else {
-            Usuario encargado = usuarioRepository.findByEmail(email)
-                    .orElseThrow(() ->
-                            new RuntimeException("No existe usuario con ese email")
-                    );
+            if (email == null || email.isBlank()) {
+                torneo.setEncargado(null);
+            } else {
+                Usuario encargado = usuarioRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new RuntimeException("No existe usuario con ese email")
+                        );
 
-            if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
-                throw new RuntimeException("El usuario no es encargado de torneo");
+                if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
+                    throw new RuntimeException("El usuario no es encargado de torneo");
+                }
+
+                torneo.setEncargado(encargado);
             }
-
-            torneo.setEncargado(encargado);
         }
+        // 🔒 si NO es admin, se ignora encargadoEmail
 
         Torneo actualizado = torneoRepository.save(torneo);
         return TorneoMapper.toDTO(actualizado);
@@ -235,5 +254,32 @@ public class TorneoService {
         }
 
         return dto;
+    }
+
+
+    public List<TorneoDTO> listarTorneosDelEncargado(String email) {
+        return torneoRepository.findByEncargadoEmail(email)
+                .stream()
+                .map(TorneoMapper::toDTO)
+                .toList();
+    }
+
+
+    @Transactional(readOnly = true)
+    public TorneoDTO obtenerPorId(Long id) {
+        // 1. Buscamos el torneo
+        Torneo torneo = torneoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
+
+        // 2. Obtener el email del usuario que está logueado actualmente (Spring Security)
+        String emailUsuarioAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // 3. VALIDACIÓN DE SEGURIDAD:
+        // Comparamos el email del encargado del torneo con el del usuario actual
+        if (!torneo.getEncargado().getEmail().equals(emailUsuarioAutenticado)) {
+            throw new AccessDeniedException("No tienes permiso para gestionar este torneo.");
+        }
+
+        return TorneoMapper.toDTO(torneo);
     }
 }

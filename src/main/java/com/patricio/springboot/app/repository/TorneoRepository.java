@@ -21,4 +21,6 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
             String tipo,
             List<Long> ids
     );
+
+    List<Torneo> findByEncargadoEmail(String email);
 }
