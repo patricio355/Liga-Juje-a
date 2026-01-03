@@ -6,7 +6,6 @@ import com.patricio.springboot.app.entity.EquipoZona;
 public class EquipoZonaMapper {
 
     public static EquipoZonaDTO toDTO(EquipoZona ez) {
-
         EquipoZonaDTO dto = new EquipoZonaDTO();
 
         dto.setId(ez.getId());
@@ -15,6 +14,10 @@ public class EquipoZonaMapper {
         dto.setTorneoId(ez.getTorneoId());
 
         dto.setNombreEquipo(ez.getEquipo().getNombre());
+
+
+        dto.setEscudo(ez.getEquipo().getEscudo());
+
         dto.setNombreZona(ez.getZona().getNombre());
 
         if (ez.getZona().getTorneo() != null) {

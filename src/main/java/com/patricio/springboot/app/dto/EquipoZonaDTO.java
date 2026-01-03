@@ -10,7 +10,7 @@ public class EquipoZonaDTO {
     private Long torneoId;
     private String nombreTorneo;
     private String nombreZona;
-
+    private String escudo;
     private int puntos;
     private int partidosJugados;
     private int ganados;
