@@ -117,7 +117,9 @@ public class TorneoService {
         torneo.setNombre(dto.getNombre());
         torneo.setDivision(dto.getDivision());
         torneo.setEstado(dto.getEstado());
-        torneo.setTipo(dto.getTipo());
+        if (dto.getTipo() != null) {
+            torneo.setTipo(dto.getTipo());
+        }
 
         boolean esAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
