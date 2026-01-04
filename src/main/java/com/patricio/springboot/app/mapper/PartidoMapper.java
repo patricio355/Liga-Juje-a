@@ -15,6 +15,7 @@ public class PartidoMapper {
         dto.setId(p.getId());
 
         dto.setEquipoLocalEscudo(p.getEquipoLocal().getEscudo());
+        dto.setEquipoVisitanteEscudo(p.getEquipoVisitante().getEscudo());
 
 
         // Equipo local
