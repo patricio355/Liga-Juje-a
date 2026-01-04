@@ -10,9 +10,11 @@ public class PartidoDTO {
     // Equipos
     private Long equipoLocalId;
     private String equipoLocalNombre;
+    private String equipoLocalEscudo;
 
     private Long equipoVisitanteId;
     private String equipoVisitanteNombre;
+    private String equipoVisitanteEscudo;
 
     private Long ganadorId;
     private String ganadorNombre;
