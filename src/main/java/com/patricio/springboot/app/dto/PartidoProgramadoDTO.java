@@ -9,6 +9,8 @@ public class PartidoProgramadoDTO {
 
     private String local;
     private String visitante;
+    private String localEscudo;
+    private String visitanteEscudo;
 
     private Integer golesLocal;
     private Integer golesVisitante;

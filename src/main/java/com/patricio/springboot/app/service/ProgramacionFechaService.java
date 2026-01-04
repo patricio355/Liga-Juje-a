@@ -137,7 +137,8 @@ public class ProgramacionFechaService {
 
                     dto.setLocal(p.getEquipoLocal().getNombre());
                     dto.setVisitante(p.getEquipoVisitante().getNombre());
-
+                    dto.setLocalEscudo(p.getEquipoLocal().getEscudo());
+                    dto.setVisitanteEscudo(p.getEquipoVisitante().getEscudo());
                     dto.setGolesLocal(p.getGolesLocal());
                     dto.setGolesVisitante(p.getGolesVisitante());
                     dto.setEstado(p.getEstado());
