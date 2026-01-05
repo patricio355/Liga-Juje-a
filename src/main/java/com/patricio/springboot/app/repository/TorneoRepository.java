@@ -12,7 +12,15 @@ import java.util.Optional;
 public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
     List<Torneo> findByEstadoAndIdNotIn(String estado, List<Long> ids);
     Optional<Torneo> findById(Long id);
-    List<Torneo> findByEstado(String estado);
+
+
+    // Usamos JOIN FETCH para traer las zonas y evitar el problema N+1
+    @Query("SELECT DISTINCT t FROM Torneo t " +
+            "LEFT JOIN FETCH t.zonas z " +
+            "WHERE t.estado = :estado")
+    List<Torneo> findByEstadoConZonas(@Param("estado") String estado);
+
+
     List<Torneo> findByIdNotIn(List<Long> ids);
     List<Torneo> findByEstadoAndTipo(String estado, String tipo);
 

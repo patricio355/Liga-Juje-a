@@ -9,6 +9,8 @@ import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.TorneoRepository;
 import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +46,7 @@ public class TorneoService {
     // --------------------------
     // CREAR TORNEO
     // --------------------------
+    @CacheEvict(value = "torneosActivos", allEntries = true)
     public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
         Torneo torneo = TorneoMapper.toEntity(dto);
@@ -96,8 +99,9 @@ public class TorneoService {
     }
 
 
+    @Cacheable(value = "torneosActivos")
     public List<TorneoDTO> listarActivos() {
-        return torneoRepository.findByEstado("activo")
+        return torneoRepository.findByEstadoConZonas("activo")
                 .stream()
                 .map(TorneoMapper::toDTO)
                 .toList();

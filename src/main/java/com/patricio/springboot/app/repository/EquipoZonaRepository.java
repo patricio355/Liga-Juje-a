@@ -39,11 +39,12 @@ public interface EquipoZonaRepository extends JpaRepository<EquipoZona, Long> {
     List<Long> findTorneoIdsByEquipoId(Long equipoId);
 
     @Query("""
-       SELECT ez FROM EquipoZona ez
-       WHERE ez.zona.id = :zonaId
-       ORDER BY ez.puntos DESC,
-                (ez.golesAFavor - ez.golesEnContra) DESC,
-                ez.golesAFavor DESC
-       """)
+   SELECT ez FROM EquipoZona ez
+   JOIN FETCH ez.equipo
+   WHERE ez.zona.id = :zonaId
+   ORDER BY ez.puntos DESC,
+            (ez.golesAFavor - ez.golesEnContra) DESC,
+            ez.golesAFavor DESC
+   """)
     List<EquipoZona> listarTablaPosiciones(Long zonaId);
 }

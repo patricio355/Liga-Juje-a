@@ -14,9 +14,16 @@ import java.util.Optional;
 public interface ProgramacionFechaRepository
         extends JpaRepository<ProgramacionFecha, Long> {
 
+
+    @Query("SELECT pf FROM ProgramacionFecha pf " +
+            "JOIN FETCH pf.partido p " +
+            "JOIN FETCH p.equipoLocal " +
+            "JOIN FETCH p.equipoVisitante " +
+            "LEFT JOIN FETCH pf.cancha " +
+            "WHERE pf.zona.id = :zonaId AND pf.numeroFecha = :fecha")
     List<ProgramacionFecha> findByZonaIdAndNumeroFecha(
-            Long zonaId,
-            Integer numeroFecha
+            @Param("zonaId") Long zonaId,
+            @Param("fecha") Integer fecha
     );
 
     boolean existsByZonaIdAndNumeroFechaAndPartidoId(

@@ -11,6 +11,7 @@ import com.patricio.springboot.app.repository.EquipoRepository;
 import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -61,6 +62,7 @@ public class EquipoZonaService {
 
 
 
+    @Cacheable(value = "equiposPorZona", key = "#zonaId")
     public List<EquipoDTO> listarEquiposPorZona(Long zonaId) {
         return equipoZonaRepository.listarTablaPosiciones(zonaId)
                 .stream()
@@ -80,6 +82,7 @@ public class EquipoZonaService {
         return EquipoZonaMapper.toDTO(ez);
     }
 
+    @Cacheable(value = "tablaPosiciones", key = "#zonaId")
     public List<EquipoZonaDTO> listarTabla(Long zonaId) {
         return equipoZonaRepository.listarTablaPosiciones(zonaId)
                 .stream()

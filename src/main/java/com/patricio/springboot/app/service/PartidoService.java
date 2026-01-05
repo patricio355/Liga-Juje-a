@@ -7,6 +7,8 @@ import com.patricio.springboot.app.mapper.PartidoMapper;
 import com.patricio.springboot.app.repository.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -392,6 +394,11 @@ public class PartidoService {
 
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "programacion", allEntries = true),
+            @CacheEvict(value = "torneos", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true) // Si tenés cacheada la tabla
+    })
     public void cerrarPartidoDirecto(
             Long partidoId,
             Integer golesLocal,
