@@ -34,7 +34,15 @@ public class PartidoService {
     private final ProgramacionFechaRepository programacionRepo;
 
 
-
+    @Transactional
+    @Caching(evict = {
+            // Borra la memoria de la lista de partidos por zona (la cajita de la derecha)
+            @CacheEvict(value = "partidosPorZona", allEntries = true),
+            // Borra la memoria del fixture general (la pantalla grande)
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            // Limpia el dashboard general
+            @CacheEvict(value = "dashboardTorneos", allEntries = true)
+    })
     public Partido crearPartido(PartidoCreateDTO dto) {
 
 
@@ -90,130 +98,6 @@ public class PartidoService {
     }
 
 
-    // CERRAR PARTIDO CALCULANDO GOLES AUTOMÁTICAMENTE
-
-    @Transactional
-    public Partido cerrarPartido(Long partidoId) {
-
-        Partido partido = partidoRepository.findById(partidoId)
-                .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
-
-        // 🔒 Evitar cerrar dos veces
-        if ("FINALIZADO".equals(partido.getEstado())) {
-            throw new RuntimeException("El partido ya está cerrado");
-        }
-
-        int golesLocal = partido.getEstadisticas().stream()
-                .filter(e -> e.getJugador().getEquipo().getId()
-                        .equals(partido.getEquipoLocal().getId()))
-                .mapToInt(EstadisticaJugador::getGoles)
-                .sum();
-
-        int golesVisitante = partido.getEstadisticas().stream()
-                .filter(e -> e.getJugador().getEquipo().getId()
-                        .equals(partido.getEquipoVisitante().getId()))
-                .mapToInt(EstadisticaJugador::getGoles)
-                .sum();
-
-        partido.setGolesLocal(golesLocal);
-        partido.setGolesVisitante(golesVisitante);
-
-        if (golesLocal > golesVisitante) {
-            partido.setGanador(partido.getEquipoLocal());
-        } else if (golesVisitante > golesLocal) {
-            partido.setGanador(partido.getEquipoVisitante());
-        } else {
-            partido.setGanador(null); // empate
-        }
-
-        partido.setEstado("FINALIZADO");
-
-        // ===============================
-        // 🔽 ACTUALIZAR EQUIPO_ZONA
-        // ===============================
-
-        EquipoZona ezLocal = equipoZonaRepository
-                .findByZonaIdAndEquipoId(
-                        partido.getZona().getId(),
-                        partido.getEquipoLocal().getId()
-                ).orElseThrow();
-
-        EquipoZona ezVisitante = equipoZonaRepository
-                .findByZonaIdAndEquipoId(
-                        partido.getZona().getId(),
-                        partido.getEquipoVisitante().getId()
-                ).orElseThrow();
-
-        // Partidos jugados
-        ezLocal.setPartidosJugados(ezLocal.getPartidosJugados() + 1);
-        ezVisitante.setPartidosJugados(ezVisitante.getPartidosJugados() + 1);
-
-        // Goles
-        ezLocal.setGolesAFavor(ezLocal.getGolesAFavor() + golesLocal);
-        ezLocal.setGolesEnContra(ezLocal.getGolesEnContra() + golesVisitante);
-
-        ezVisitante.setGolesAFavor(ezVisitante.getGolesAFavor() + golesVisitante);
-        ezVisitante.setGolesEnContra(ezVisitante.getGolesEnContra() + golesLocal);
-
-        // Resultado
-        if (golesLocal > golesVisitante) {
-
-            ezLocal.setGanados(ezLocal.getGanados() + 1);
-            ezLocal.setPuntos(ezLocal.getPuntos() + 3);
-
-            ezVisitante.setPerdidos(ezVisitante.getPerdidos() + 1);
-
-        } else if (golesVisitante > golesLocal) {
-
-            ezVisitante.setGanados(ezVisitante.getGanados() + 1);
-            ezVisitante.setPuntos(ezVisitante.getPuntos() + 3);
-
-            ezLocal.setPerdidos(ezLocal.getPerdidos() + 1);
-
-        } else {
-            // EMPATE
-            ezLocal.setEmpatados(ezLocal.getEmpatados() + 1);
-            ezVisitante.setEmpatados(ezVisitante.getEmpatados() + 1);
-
-            ezLocal.setPuntos(ezLocal.getPuntos() + 1);
-            ezVisitante.setPuntos(ezVisitante.getPuntos() + 1);
-        }
-
-        equipoZonaRepository.save(ezLocal);
-        equipoZonaRepository.save(ezVisitante);
-
-        partidoRepository.save(partido);
-        return partido;
-    }
-
-
-
-
-    // ACTUALIZAR ESTADÍSTICAS DEL TORNEO
-
-    private void actualizarStatsPorResultado(Partido partido, int golesLocal, int golesVisitante) {
-
-        EquipoZona localZona = equipoZonaRepository.findByEquipoIdAndZonaId(
-                partido.getEquipoLocal().getId(), partido.getZona().getId()
-        );
-
-        EquipoZona visitanteZona = equipoZonaRepository.findByEquipoIdAndZonaId(
-                partido.getEquipoVisitante().getId(), partido.getZona().getId()
-        );
-
-        if (localZona == null || visitanteZona == null) {
-            throw new RuntimeException("Uno de los equipos no está inscripto en la zona.");
-        }
-
-        // Sumar estadísticas
-        actualizarStats(localZona, golesLocal, golesVisitante);
-        actualizarStats(visitanteZona, golesVisitante, golesLocal);
-
-        equipoZonaRepository.save(localZona);
-        equipoZonaRepository.save(visitanteZona);
-    }
-
-
     // LÓGICA FUTBOLÍSTICA DE SUMA DE PUNTOS
 
     private void actualizarStats(EquipoZona ez, int golesHechos, int golesRecibidos) {
@@ -259,6 +143,11 @@ public class PartidoService {
                 .toList();
     }
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "torneoDetalle", allEntries = true), // Limpia todos los detalles
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true)
+    })
     public void generarFixtureInicialZona(Long zonaId) {
 
         Zona zona = zonaRepository.findById(zonaId)

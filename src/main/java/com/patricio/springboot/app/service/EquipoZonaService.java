@@ -11,8 +11,11 @@ import com.patricio.springboot.app.repository.EquipoRepository;
 import com.patricio.springboot.app.repository.EquipoZonaRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -24,35 +27,42 @@ public class EquipoZonaService {
     private final EquipoRepository equipoRepository;
     private final ZonaRepository zonaRepository;
 
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "torneoDetalle", key = "#result.torneoId", condition = "#result != null"),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "dashboardTorneos", allEntries = true)
+    })
     public EquipoZonaDTO inscribirEquipo(Long equipoId, Long zonaId) {
+
+        // 1. Usar findByIdOptimized para evitar el problema N+1 al traer la zona y su torneo
+        Zona zona = zonaRepository.findById(zonaId)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
 
         Equipo equipo = equipoRepository.findById(equipoId)
                 .orElseThrow(() -> new RuntimeException("Equipo no encontrado"));
 
-        Zona zona = zonaRepository.findById(zonaId)
-                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
-
         Long torneoId = zona.getTorneo().getId();
 
-        if (equipoZonaRepository
+        // 2. Validación de duplicados
+        // TIP: Si tu torneo está vacío y te sigue dando este error,
+        // revisa manualmente la tabla 'equipo_zona' en tu DB, puede haber datos basura.
+        boolean yaExiste = equipoZonaRepository
                 .existsByNombreEquipoIgnoreCaseAndZona_Torneo_Id(
                         equipo.getNombre(),
                         torneoId
-                )) {
-            throw new RuntimeException(
-                    "Ya existe un equipo con ese nombre en este torneo"
-            );
+                );
+
+        if (yaExiste) {
+            throw new RuntimeException("El equipo '" + equipo.getNombre() + "' ya está inscrito en este torneo.");
         }
 
-
-
+        // 3. Crear la relación
         EquipoZona relacion = new EquipoZona();
         relacion.setEquipo(equipo);
         relacion.setZona(zona);
         relacion.setTorneoId(torneoId);
         relacion.setNombreEquipo(equipo.getNombre());
-
-
 
         EquipoZona guardado = equipoZonaRepository.save(relacion);
 

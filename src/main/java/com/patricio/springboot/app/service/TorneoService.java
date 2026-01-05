@@ -11,6 +11,7 @@ import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +47,10 @@ public class TorneoService {
     // --------------------------
     // CREAR TORNEO
     // --------------------------
-    @CacheEvict(value = "torneosActivos", allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true)
+    })
     public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
         Torneo torneo = TorneoMapper.toEntity(dto);
@@ -91,8 +95,9 @@ public class TorneoService {
     // LISTAR TORNEOS
     // --------------------------
 
+    @Cacheable(value = "dashboardTorneos")
     public List<TorneoDTO> listarTorneos() {
-        return torneoRepository.findAll()
+        return torneoRepository.findAllWithZonas()
                 .stream()
                 .map(TorneoMapper::toDTO)
                 .toList();
@@ -110,6 +115,11 @@ public class TorneoService {
     // --------------------------
     // MODIFICAR TORNEO
     // --------------------------
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", key = "#id") // Limpia el detalle específico
+    })
     public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
 
         Torneo torneo = torneoRepository.findById(id)
@@ -160,7 +170,11 @@ public class TorneoService {
     // --------------------------
     // ELIMINAR TORNEO
     // --------------------------
-
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", key = "#id") // Limpia el detalle específico
+    })
     public void eliminarTorneo(Long id) {
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
@@ -173,7 +187,11 @@ public class TorneoService {
     // --------------------------
     // AGREGAR ZONA A TORNEO
     // --------------------------
-
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", key = "#idTorneo") // Limpia el detalle del torneo específico
+    })
     public TorneoDTO agregarZona(Long idTorneo, ZonaDTO zonaDTO) {
 
         Torneo torneo = torneoRepository.findById(idTorneo)
@@ -194,7 +212,11 @@ public class TorneoService {
     // --------------------------
     // QUITAR ZONA
     // --------------------------
-
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", key = "#idTorneo")
+    })
     public TorneoDTO quitarZona(Long idTorneo, Long idZona) {
 
         Torneo torneo = torneoRepository.findById(idTorneo)
@@ -243,36 +265,45 @@ public class TorneoService {
 
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", key = "#result.torneoId", condition = "#result != null"),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true)
+    })
     public EquipoZonaDTO agregarEquipoAZona(Long equipoId, Long zonaId) {
-
-        //  Inscribir equipo en la zona
+        // 1. Inscribir equipo (Aquí es donde el Service debe validar si ya existe)
         EquipoZonaDTO dto = equipoZonaService.inscribirEquipo(equipoId, zonaId);
 
-        //  Obtener zona + torneo
-        Zona zona = zonaRepository.findById(zonaId)
+        // 2. Obtener zona + torneo con JOIN FETCH para evitar N+1
+        Zona zona = zonaRepository.findByIdOptimized(zonaId)
                 .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
 
         Torneo torneo = zona.getTorneo();
 
-        //  Regenerar fixture SOLO si el torneo es ABIERTO
+        // 3. Regenerar fixture solo si es ABIERTO
         if ("ABIERTO".equalsIgnoreCase(torneo.getTipo())) {
             partidoService.regenerarFixtureZona(zonaId);
+            // Al regenerar partidos, también deberíamos limpiar cachés de fixture si tuvieras
         }
 
         return dto;
     }
 
 
+    @Cacheable(value = "dashboardTorneos", key = "#email")
     public List<TorneoDTO> listarTorneosDelEncargado(String email) {
-        return torneoRepository.findByEncargadoEmail(email)
+        return torneoRepository.findByEncargadoEmailWithZonas(email)
                 .stream()
                 .map(TorneoMapper::toDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "torneoDetalle", key = "#id") // Guarda el resultado por ID
     public TorneoDTO obtenerPorId(Long id) {
-        Torneo torneo = torneoRepository.findById(id)
+        // Usamos el nuevo método optimizado
+        Torneo torneo = torneoRepository.findByIdOptimized(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -281,11 +312,8 @@ public class TorneoService {
         boolean esAdminGlobal = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
-        // FIX: Verificamos primero si existe el encargado
-        boolean esDuenio = false;
-        if (torneo.getEncargado() != null) {
-            esDuenio = torneo.getEncargado().getEmail().equalsIgnoreCase(emailUsuarioAutenticado);
-        }
+        boolean esDuenio = torneo.getEncargado() != null &&
+                torneo.getEncargado().getEmail().equalsIgnoreCase(emailUsuarioAutenticado);
 
         if (!esAdminGlobal && !esDuenio) {
             throw new AccessDeniedException("No tienes permiso para gestionar este torneo.");
