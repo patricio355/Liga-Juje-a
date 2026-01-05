@@ -9,6 +9,7 @@ import com.patricio.springboot.app.repository.ProgramacionFechaRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -119,7 +120,7 @@ public class ProgramacionFechaService {
         programacionRepository.save(pf);
     }
 
-
+    @Cacheable(value = "programacion", key = "{#zonaId, #fecha}")
     public List<PartidoProgramadoDTO> obtenerProgramacion(
             Long zonaId,
             Integer fecha
