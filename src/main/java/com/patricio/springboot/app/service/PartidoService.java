@@ -44,9 +44,7 @@ public class PartidoService {
     })
     public Partido crearPartido(PartidoCreateDTO dto) {
 
-
-        // VALIDAR EQUIPOS EN LA ZONA
-
+        // 1. VALIDAR EQUIPOS EN LA ZONA
         if (equipoZonaRepository.findByEquipoIdAndZonaId(dto.getEquipoLocalId(), dto.getZonaId()) == null) {
             throw new RuntimeException("El equipo local NO está inscripto en la zona.");
         }
@@ -55,6 +53,7 @@ public class PartidoService {
             throw new RuntimeException("El equipo visitante NO está inscripto en la zona.");
         }
 
+        // 2. CONSTRUIR ENTIDAD PARTIDO
         Partido partido = new Partido();
 
         partido.setEquipoLocal(
@@ -67,33 +66,44 @@ public class PartidoService {
                         .orElseThrow(() -> new RuntimeException("Equipo visitante no encontrado"))
         );
 
-        partido.setCancha(
-                canchaRepository.findById(dto.getCanchaId())
-                        .orElseThrow(() -> new RuntimeException("Cancha no encontrada"))
-        );
+        Cancha cancha = canchaRepository.findById(dto.getCanchaId())
+                .orElseThrow(() -> new RuntimeException("Cancha no encontrada"));
+        partido.setCancha(cancha);
 
-        partido.setZona(
-                zonaRepository.findById(dto.getZonaId())
-                        .orElseThrow(() -> new RuntimeException("Zona no encontrada"))
-        );
+        Zona zona = zonaRepository.findById(dto.getZonaId())
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+        partido.setZona(zona);
 
-//        partido.setEtapa(
-//                etapaRepository.findById(dto.getEtapaId())
-//                        .orElseThrow(() -> new RuntimeException("Etapa no encontrada"))
-//        );
-//
-//        partido.setArbitro(
-//                arbitroRepository.findById(dto.getArbitroId())
-//                        .orElseThrow(() -> new RuntimeException("Árbitro no encontrado"))
-//        );
+        // Parseo de los nuevos campos String del DTO
+        if (dto.getFecha() != null) {
+            partido.setFecha(java.time.LocalDate.parse(dto.getFecha()));
+        }
 
-        partido.setFecha(LocalDate.parse(dto.getFecha()));
+        if (dto.getHora() != null) {
+            partido.setHora(java.time.LocalTime.parse(dto.getHora()));
+        }
+
         partido.setVeedor(dto.getVeedor());
         partido.setEstado("PENDIENTE");
         partido.setNumeroFecha(dto.getNumeroFecha());
-        partido.setFechaHora(dto.getFechaHora());
 
-        return partidoRepository.save(partido);
+        // Guardar Partido
+        Partido partidoGuardado = partidoRepository.save(partido);
+
+        // 3. CREAR REGISTRO EN PROGRAMACION_FECHA
+        // Esto asegura que el partido aparezca en el calendario de gestión y público
+        ProgramacionFecha pf = new ProgramacionFecha();
+        pf.setZona(zona);
+        pf.setPartido(partidoGuardado);
+        pf.setNumeroFecha(dto.getNumeroFecha());
+        pf.setFecha(partidoGuardado.getFecha());
+        pf.setHora(partidoGuardado.getHora());
+        pf.setCancha(cancha);
+        pf.setEstado("PROGRAMADO"); // Estado inicial para el calendario
+
+        programacionRepo.save(pf);
+
+        return partidoGuardado;
     }
 
 
@@ -101,7 +111,7 @@ public class PartidoService {
     public List<FixtureFechaDTO> obtenerFixturePorZona(Long zonaId) {
 
         List<Partido> partidos =
-                partidoRepository.findByZonaIdOrderByNumeroFechaAscFechaHoraAsc(zonaId);
+                partidoRepository.findByZonaIdOrderByNumeroFechaAscFechaAscHoraAsc(zonaId);
 
         return partidos.stream()
                 .collect(Collectors.groupingBy(
@@ -139,21 +149,18 @@ public class PartidoService {
 
         if (equipos.size() < 2) return;
 
-        // no permitir regenerar
         if (partidoRepository.existsByZonaId(zonaId)) {
             throw new RuntimeException("El fixture ya fue generado");
         }
 
         List<Equipo> lista = new ArrayList<>(equipos);
-
         boolean impar = lista.size() % 2 != 0;
-        if (impar) lista.add(null); // BYE
+        if (impar) lista.add(null);
 
         int n = lista.size();
         int rondas = n - 1;
 
         for (int ronda = 0; ronda < rondas; ronda++) {
-
             int numeroFecha = ronda + 1;
 
             for (int i = 0; i < n / 2; i++) {
@@ -165,6 +172,7 @@ public class PartidoService {
                 Equipo local = (ronda % 2 == 0) ? a : b;
                 Equipo visitante = (ronda % 2 == 0) ? b : a;
 
+                // 1. Crear y guardar el Partido
                 Partido p = new Partido();
                 p.setZona(zona);
                 p.setEquipoLocal(local);
@@ -172,14 +180,30 @@ public class PartidoService {
                 p.setNumeroFecha(numeroFecha);
                 p.setEstado("PENDIENTE");
 
-                partidoRepository.save(p);
+
+                Partido partidoGuardado = partidoRepository.save(p);
+
+                // 2. Crear y guardar la Programación Automática
+                ProgramacionFecha pf = new ProgramacionFecha();
+                pf.setZona(zona);
+                pf.setNumeroFecha(numeroFecha);
+                pf.setPartido(partidoGuardado);
+                pf.setEstado("PROGRAMADO"); // Estado inicial
+
+                // Estos quedan nulos hasta que se editen en el panel de gestión
+                pf.setFecha(null);
+                pf.setHora(null);
+                pf.setCancha(null);
+
+                programacionRepo.save(pf);
             }
 
-            // rotación clásica
+            // Rotación clásica Round Robin
             Equipo ultimo = lista.remove(lista.size() - 1);
             lista.add(1, ultimo);
         }
     }
+
 
 
 
@@ -440,54 +464,59 @@ public class PartidoService {
             // Limpia el fixture visual para que se vea la nueva cancha/hora
             @CacheEvict(value = "torneoDetalle", allEntries = true)
     })
-
     public void actualizarDetallesProgramacion(
-            Long zonaId,
-            Integer numeroFecha,
             Long partidoId,
+            String fechaStr, // Recibimos como String para parsear
+            String horaStr,  // Recibimos como String para parsear
             String canchaNombre,
-            String hora,
             String arbitro
     ) {
         // 1. Buscamos el registro en la tabla de programación
         ProgramacionFecha pf = programacionRepo.findByPartidoId(partidoId)
                 .orElseThrow(() -> new RuntimeException("Este partido aún no ha sido programado en una fecha"));
 
-        // 2. Actualizamos la Hora (Parse de String a LocalTime)
-        if (hora != null && !hora.isEmpty()) {
-            pf.setHora(java.time.LocalTime.parse(hora));
+        // Obtenemos la entidad Partido vinculada
+        Partido partido = pf.getPartido();
+
+        // 2. Procesar FECHA (LocalDate)
+        if (fechaStr != null && !fechaStr.isEmpty()) {
+            java.time.LocalDate fecha = java.time.LocalDate.parse(fechaStr);
+            pf.setFecha(fecha);       // Guarda en programacion_fecha
+            partido.setFecha(fecha);  // Guarda en partido
         }
 
-        // 3. Actualizamos el Árbitro
+        // 3. Procesar HORA (LocalTime)
+        if (horaStr != null && !horaStr.isEmpty()) {
+            java.time.LocalTime hora = java.time.LocalTime.parse(horaStr);
+            pf.setHora(hora);         // Guarda en programacion_fecha
+            partido.setHora(hora);    // Guarda en partido
+        }
+
+        // 4. Actualizar Cancha
+        if (canchaNombre != null && !canchaNombre.isEmpty()) {
+            Cancha cancha = canchaRepository.findByNombre(canchaNombre)
+                    .orElseGet(() -> {
+                        Cancha nueva = new Cancha();
+                        nueva.setNombre(canchaNombre);
+                        nueva.setEstado(true);
+                        return canchaRepository.save(nueva);
+                    });
+            pf.setCancha(cancha);
+            partido.setCancha(cancha);
+        }
+
+        // 5. Actualizar Árbitro
         if (arbitro != null && !arbitro.isBlank()) {
             Usuario user = usuarioRepository.findByNombre(arbitro)
                     .orElseThrow(() -> new RuntimeException("El árbitro seleccionado no existe"));
 
+            // Asumiendo que Arbitro extiende de Usuario o usa su ID
             Arbitro realArbitro = new Arbitro();
             realArbitro.setId(user.getId());
-
-            pf.getPartido().setArbitro(realArbitro);
+            partido.setArbitro(realArbitro);
         }
 
-        // 4. Actualizamos la Cancha
-        // Buscamos la entidad Cancha por nombre o la creamos si tu lógica lo permite
-        if (canchaNombre != null && !canchaNombre.isEmpty()) {
-            Cancha cancha = canchaRepository.findByNombre(canchaNombre)
-                    .orElseGet(() -> {
-                        // Opcional: Crear la cancha si no existe, o lanzar error
-                        Cancha nueva = new Cancha();
-                        nueva.setNombre(canchaNombre);
-                        return canchaRepository.save(nueva);
-                    });
-            pf.setCancha(cancha);
-        }
-
-        // 5. Sincronizamos campos básicos en la entidad Partido si es necesario
-        // (Por ejemplo, si guardas la fecha/hora duplicada en la tabla partidos)
-        Partido partido = pf.getPartido();
-        Arbitro a = pf.getPartido().getArbitro();
-        partido.setArbitro(a); // Asumiendo que Partido tiene este campo
-
+        // 6. Persistencia final en ambas tablas
         programacionRepo.save(pf);
         partidoRepository.save(partido);
     }

@@ -68,8 +68,8 @@ public class PartidoMapper {
         }
 
         // FechaHora (LocalDateTime)
-        if (p.getFechaHora() != null) {
-            dto.setFechaHora(p.getFechaHora().toString()); // ISO
+        if (p.getHora() != null) {
+            dto.setHora(p.getHora().toString()); // ISO
         }
 
         dto.setGolesLocal(p.getGolesLocal());

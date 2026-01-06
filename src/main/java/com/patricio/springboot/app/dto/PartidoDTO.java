@@ -42,7 +42,7 @@ public class PartidoDTO {
     private String veedor;
 
     private String fecha;       // yyyy-MM-dd (LocalDate)
-    private String fechaHora;   // ISO (LocalDateTime)
+    private String Hora;   // ISO (LocalDateTime)
 
     private Integer numeroFecha;
     private String estado;

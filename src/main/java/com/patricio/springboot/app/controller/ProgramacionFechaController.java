@@ -5,6 +5,7 @@ import com.patricio.springboot.app.dto.TarjetaProgramacionEquipoDTO;
 import com.patricio.springboot.app.service.PartidoService;
 import com.patricio.springboot.app.service.ProgramacionFechaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,15 +55,33 @@ public class ProgramacionFechaController {
         return service.obtenerFechasDisponibles(zonaId);
     }
 
-   @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
-    @PutMapping("/detalles/{partidoId}") //
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
+    @PutMapping("/detalles/{partidoId}")
     public ResponseEntity<?> actualizarDetalles(
             @PathVariable Long partidoId,
             @RequestBody Map<String, String> body
     ) {
-        // Los otros parámetros (zonaId, fecha) no son necesarios para buscar por ID único
-        partidoService.actualizarDetallesProgramacion(null, null, partidoId,
-                body.get("cancha"), body.get("hora"), body.get("arbitro"));
-        return ResponseEntity.ok().build();
+        try {
+            // Extraemos los valores del body
+            String fecha = body.get("fecha"); // Formato esperado: "yyyy-MM-dd"
+            String hora = body.get("hora");   // Formato esperado: "HH:mm"
+            String cancha = body.get("cancha");
+            String arbitro = body.get("arbitro");
+
+            // Llamamos al servicio con los nuevos parámetros de fecha y hora
+            partidoService.actualizarDetallesProgramacion(
+                    partidoId,
+                    fecha,
+                    hora,
+                    cancha,
+                    arbitro
+            );
+
+            return ResponseEntity.ok(Map.of("message", "Detalles actualizados correctamente"));
+        } catch (Exception e) {
+            // Retornamos el error para que el frontend pueda mostrarlo
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 }
