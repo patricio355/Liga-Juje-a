@@ -21,7 +21,7 @@ public class PartidoDTO {
 
     // Arbitro
     private Long arbitroId;
-    private String arbitroNombre;
+    private String arbitro;
 
     // Cancha
     private Long canchaId;

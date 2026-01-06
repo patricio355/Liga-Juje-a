@@ -7,7 +7,7 @@ import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.repository.PartidoRepository;
 import com.patricio.springboot.app.repository.ProgramacionFechaRepository;
 import com.patricio.springboot.app.repository.ZonaRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -92,7 +92,9 @@ public class ProgramacionFechaService {
             // Borra el caché específico de esta fecha para que aparezca en el panel derecho
             @CacheEvict(value = "programacion", key = "{#zonaId, #fecha}"),
             // Opcional: Borra el fixture general para que se actualice en todo el sitio
-            @CacheEvict(value = "torneoDetalle", allEntries = true)
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "fixture", allEntries = true)
+
     })
     public void programarPartido(Long zonaId, Integer fecha, Long partidoId) {
         if (programacionRepository.existePartidoEnZona(zonaId, partidoId)) {
@@ -112,7 +114,8 @@ public class ProgramacionFechaService {
      * Obtiene los partidos programados para una fecha específica.
      * El caché se limpia automáticamente cuando se ejecuta programarPartido.
      */
-    @Cacheable(value = "programacion", key = "{#zonaId, #fecha}")
+    @Transactional(readOnly = true)
+   @Cacheable(value = "programacion", key = "{#zonaId, #fecha}")
     public List<PartidoProgramadoDTO> obtenerProgramacion(Long zonaId, Integer fecha) {
         return programacionRepository
                 .findByZonaIdAndNumeroFecha(zonaId, fecha)
@@ -133,6 +136,14 @@ public class ProgramacionFechaService {
                     dto.setGolesVisitante(p.getGolesVisitante());
                     dto.setEstado(p.getEstado());
 
+                    if (p.getArbitro() != null) {
+                        // Forzamos la obtención del nombre para que Hibernate dispare la consulta
+
+                        String nombre = p.getArbitro().getNombre();
+                        dto.setArbitro(nombre);
+                    } else {
+                        dto.setArbitro(null);
+                    }
                     dto.setFecha(pf.getFecha() != null ? pf.getFecha().toString() : null);
                     dto.setHora(pf.getHora() != null ? pf.getHora().toString() : null);
 

@@ -34,23 +34,9 @@ public class PartidoController {
         return ResponseEntity.ok(PartidoMapper.toDTO(partido));
     }
 
-    // =============================================
-    // CERRAR PARTIDO DESDE PANEL DEL ÁRBITRO
-    // =============================================
-//    @PostMapping("/{id}/cerrar")
-//    public ResponseEntity<ResultadoPartidoResponse> cerrarPartido(@PathVariable Long id) {
-//        try {
-//            Partido partido = partidoService.cerrarPartido(id);
-//
-//            ResultadoPartidoResponse response = new ResultadoPartidoResponse(partido);
-//
-//            return ResponseEntity.ok(response);
-//
-//        } catch (Exception e) {
-//            e.printStackTrace(); // MUESTRA EL ERROR REAL
-//            return ResponseEntity.badRequest().body(null);
-//        }
-//    }
+
+
+
 
 
     // 🔹 FIXTURE POR ZONA

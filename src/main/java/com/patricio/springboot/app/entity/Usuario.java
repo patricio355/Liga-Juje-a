@@ -7,9 +7,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "usuarios")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "rol", discriminatorType = DiscriminatorType.STRING)
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Usuario {
 
     @Id
@@ -23,7 +23,7 @@ public class Usuario {
     private String telefono;
     private String domicilio;
 
-    @Column(nullable = false)
+    @Column(name = "rol", insertable = false, updatable = false)
     private String rol; // ADMIN, ENCARGADO, ENCARGADOTORNEO, ARBITRO, VEEDOR
 
     private boolean activo = true;

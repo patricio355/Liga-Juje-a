@@ -25,13 +25,12 @@ public class PartidoService {
 
     private final EquipoZonaRepository equipoZonaRepository;
     private final PartidoRepository partidoRepository;
-    private final EquipoZonaService equipoZonaService;
     private final EquipoRepository equipoRepository;
     private final CanchaRepository canchaRepository;
     private final ZonaRepository zonaRepository;
-    private final EstadisticaJugadorRepository estadisticaRepo;
     private final SolicitudCierrePartidoRepository solicitudRepo;
     private final ProgramacionFechaRepository programacionRepo;
+    private final UsuarioRepository usuarioRepository;
 
 
     @Transactional
@@ -96,27 +95,6 @@ public class PartidoService {
 
         return partidoRepository.save(partido);
     }
-
-
-    // LÓGICA FUTBOLÍSTICA DE SUMA DE PUNTOS
-
-    private void actualizarStats(EquipoZona ez, int golesHechos, int golesRecibidos) {
-
-        ez.setPartidosJugados(ez.getPartidosJugados() + 1);
-        ez.setGolesAFavor(ez.getGolesAFavor() + golesHechos);
-        ez.setGolesEnContra(ez.getGolesEnContra() + golesRecibidos);
-
-        if (golesHechos > golesRecibidos) {
-            ez.setGanados(ez.getGanados() + 1);
-            ez.setPuntos(ez.getPuntos() + 3);
-        } else if (golesHechos == golesRecibidos) {
-            ez.setEmpatados(ez.getEmpatados() + 1);
-            ez.setPuntos(ez.getPuntos() + 1);
-        } else {
-            ez.setPerdidos(ez.getPerdidos() + 1);
-        }
-    }
-
 
 
 
@@ -452,6 +430,66 @@ public class PartidoService {
     public List<Integer> obtenerFechasConPartidos(Long zonaId) {
         // Ahora solo devolverá [1, 2] si solo hay partidos en esas fechas
         return partidoRepository.findDistinctNumeroFechaByZonaId(zonaId);
+    }
+
+
+    @Transactional
+    @Caching(evict = {
+            // Limpia la programación de la zona/fecha específica
+            @CacheEvict(value = "programacion", allEntries = true),
+            // Limpia el fixture visual para que se vea la nueva cancha/hora
+            @CacheEvict(value = "torneoDetalle", allEntries = true)
+    })
+
+    public void actualizarDetallesProgramacion(
+            Long zonaId,
+            Integer numeroFecha,
+            Long partidoId,
+            String canchaNombre,
+            String hora,
+            String arbitro
+    ) {
+        // 1. Buscamos el registro en la tabla de programación
+        ProgramacionFecha pf = programacionRepo.findByPartidoId(partidoId)
+                .orElseThrow(() -> new RuntimeException("Este partido aún no ha sido programado en una fecha"));
+
+        // 2. Actualizamos la Hora (Parse de String a LocalTime)
+        if (hora != null && !hora.isEmpty()) {
+            pf.setHora(java.time.LocalTime.parse(hora));
+        }
+
+        // 3. Actualizamos el Árbitro
+        if (arbitro != null && !arbitro.isBlank()) {
+            Usuario user = usuarioRepository.findByNombre(arbitro)
+                    .orElseThrow(() -> new RuntimeException("El árbitro seleccionado no existe"));
+
+            Arbitro realArbitro = new Arbitro();
+            realArbitro.setId(user.getId());
+
+            pf.getPartido().setArbitro(realArbitro);
+        }
+
+        // 4. Actualizamos la Cancha
+        // Buscamos la entidad Cancha por nombre o la creamos si tu lógica lo permite
+        if (canchaNombre != null && !canchaNombre.isEmpty()) {
+            Cancha cancha = canchaRepository.findByNombre(canchaNombre)
+                    .orElseGet(() -> {
+                        // Opcional: Crear la cancha si no existe, o lanzar error
+                        Cancha nueva = new Cancha();
+                        nueva.setNombre(canchaNombre);
+                        return canchaRepository.save(nueva);
+                    });
+            pf.setCancha(cancha);
+        }
+
+        // 5. Sincronizamos campos básicos en la entidad Partido si es necesario
+        // (Por ejemplo, si guardas la fecha/hora duplicada en la tabla partidos)
+        Partido partido = pf.getPartido();
+        Arbitro a = pf.getPartido().getArbitro();
+        partido.setArbitro(a); // Asumiendo que Partido tiene este campo
+
+        programacionRepo.save(pf);
+        partidoRepository.save(partido);
     }
 
 }

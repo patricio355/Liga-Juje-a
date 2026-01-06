@@ -121,4 +121,13 @@ public class UsuarioService {
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
     }
+
+
+    public List<UsuarioDTO> listarArbitros() {
+        return usuarioRepository.findAll()
+                .stream()
+                .filter(u -> "ARBITRO".equals(u.getRol()) && u.isActivo()) // Filtra por rol y que esté activo
+                .map(UsuarioMapper::toDTO)
+                .toList();
+    }
 }
