@@ -2,6 +2,7 @@ package com.patricio.springboot.app.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -56,6 +57,6 @@ public class Partido {
     private Integer golesLocal;
     private Integer golesVisitante;
 
-    private LocalDateTime fechaHora;
+    private LocalTime hora;
     private Integer numeroFecha;
 }
