@@ -30,7 +30,7 @@ public class Partido {
     @JoinColumn(name = "ganador_id")
     private Equipo ganador;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "arbitro_id")
     private Arbitro arbitro;
 

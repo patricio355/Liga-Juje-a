@@ -39,7 +39,7 @@ public class PartidoMapper {
         // Árbitro
         if (p.getArbitro() != null) {
             dto.setArbitroId(p.getArbitro().getId());
-            dto.setArbitroNombre(p.getArbitro().getNombre());
+            dto.setArbitro(p.getArbitro().getNombre());
         }
 
         // Cancha

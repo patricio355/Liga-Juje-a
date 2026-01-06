@@ -14,6 +14,7 @@ import com.patricio.springboot.app.service.EquipoZonaService;
 import com.patricio.springboot.app.service.JugadorService;
 import jakarta.persistence.Id;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,6 +74,7 @@ public class EquipoController {
         return ResponseEntity.ok(lista);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @PostMapping
     @Operation()
     public ResponseEntity<EquipoDTO> crearEquipo(@Valid @RequestBody EquipoDTO equipo) {
@@ -91,7 +93,7 @@ public class EquipoController {
         return ResponseEntity.ok().body(entity);
     }
 
-
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
     @PutMapping("/{id}")
     @Operation()
     public ResponseEntity<EquipoDTO> editarEquipo(@Valid @RequestBody EquipoDTO equipo, @PathVariable Long id) {

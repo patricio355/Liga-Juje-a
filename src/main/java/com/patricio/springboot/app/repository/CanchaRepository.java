@@ -11,4 +11,6 @@ public interface CanchaRepository extends JpaRepository<Cancha, Integer>{
      Optional<Cancha> findById(Long id);
 
     List<Cancha> findAllByEstadoTrue();
+
+    Optional<Cancha> findByNombre(String canchaNombre);
 }

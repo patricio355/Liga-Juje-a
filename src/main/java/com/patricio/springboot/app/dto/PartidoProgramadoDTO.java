@@ -11,7 +11,7 @@ public class PartidoProgramadoDTO {
     private String visitante;
     private String localEscudo;
     private String visitanteEscudo;
-
+    private String arbitro;
     private Integer golesLocal;
     private Integer golesVisitante;
 

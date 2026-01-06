@@ -5,7 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@DiscriminatorValue(value = "Arbitro")
+@DiscriminatorValue(value = "ARBITRO")
 @Getter
 @Setter
 @NoArgsConstructor

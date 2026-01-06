@@ -5,7 +5,7 @@ import jakarta.persistence.Entity;
 import lombok.*;
 
 @Entity
-@DiscriminatorValue(value = "EncargadoEquipo")
+@DiscriminatorValue(value = "ENCARGADOEQUIPO")
 @Getter
 @Setter
 @NoArgsConstructor

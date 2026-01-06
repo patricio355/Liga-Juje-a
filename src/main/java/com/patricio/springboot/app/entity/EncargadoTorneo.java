@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@DiscriminatorValue(value = "EncargadoTorneo")
+@DiscriminatorValue(value = "ENCARGADOTORNEO")
 @Getter
 @Setter
 @NoArgsConstructor

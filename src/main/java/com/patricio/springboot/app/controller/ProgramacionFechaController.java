@@ -2,6 +2,7 @@ package com.patricio.springboot.app.controller;
 
 import com.patricio.springboot.app.dto.PartidoProgramadoDTO;
 import com.patricio.springboot.app.dto.TarjetaProgramacionEquipoDTO;
+import com.patricio.springboot.app.service.PartidoService;
 import com.patricio.springboot.app.service.ProgramacionFechaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/programacion")
@@ -16,6 +18,7 @@ import java.util.List;
 public class ProgramacionFechaController {
 
     private final ProgramacionFechaService service;
+    private final PartidoService partidoService;
 
     @PreAuthorize("hasAnyRole('ADMIN','ENCARGADOTORNEO')")
     @GetMapping("/zona/{zonaId}/fecha/{fecha}/opciones")
@@ -49,5 +52,17 @@ public class ProgramacionFechaController {
     @GetMapping("/zona/{zonaId}/fechas-disponibles")
     public List<Integer> getFechas(@PathVariable Long zonaId) {
         return service.obtenerFechasDisponibles(zonaId);
+    }
+
+   @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
+    @PutMapping("/detalles/{partidoId}") //
+    public ResponseEntity<?> actualizarDetalles(
+            @PathVariable Long partidoId,
+            @RequestBody Map<String, String> body
+    ) {
+        // Los otros parámetros (zonaId, fecha) no son necesarios para buscar por ID único
+        partidoService.actualizarDetallesProgramacion(null, null, partidoId,
+                body.get("cancha"), body.get("hora"), body.get("arbitro"));
+        return ResponseEntity.ok().build();
     }
 }

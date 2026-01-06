@@ -21,6 +21,11 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+
+    @GetMapping("/arbitros")
+    public ResponseEntity<List<UsuarioDTO>> getArbitros() {
+        return ResponseEntity.ok(usuarioService.listarArbitros());
+    }
     // =========================
     // LISTAR USUARIOS
     // =========================
