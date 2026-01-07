@@ -33,7 +33,8 @@ public class ZonaService {
     @Caching(evict = {
             @CacheEvict(value = "zonasPorTorneo", allEntries = true),
             @CacheEvict(value = "torneoDetalle", allEntries = true),
-            @CacheEvict(value = "dashboardTorneos", allEntries = true)
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true)
     })
     public ZonaDTO editarZona(Long id, ZonaDTO dto) {
         Zona zona = zonaRepository.findById(id)

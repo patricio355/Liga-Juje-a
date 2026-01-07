@@ -18,4 +18,6 @@ public class TorneoDTO {
     private List<ZonaDTO> zonas;
     private String tipo;
     private String slug;
+    private Integer puntosGanador;
+    private Integer puntosEmpate;
 }

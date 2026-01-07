@@ -83,6 +83,14 @@ public class EquipoController {
         return ResponseEntity.ok().body(entity);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'ENCARGADOTORNEO')")
+    @PostMapping("/zona/{zonaId}")
+    public ResponseEntity<EquipoDTO> crearEquipoEnZona(
+            @RequestBody EquipoDTO dto,
+            @PathVariable Long zonaId) {
+        return ResponseEntity.ok(equipoService.crearEquipoEnZona(dto, zonaId));
+    }
+
 
 
     @DeleteMapping("/{id}")

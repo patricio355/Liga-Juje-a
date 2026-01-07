@@ -313,6 +313,7 @@ public class TorneoService {
     }
 
 
+
     @Cacheable(value = "dashboardTorneos", key = "#email")
     public List<TorneoDTO> listarTorneosDelEncargado(String email) {
         return torneoRepository.findByEncargadoEmailWithZonas(email)
