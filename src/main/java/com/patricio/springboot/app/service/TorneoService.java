@@ -87,9 +87,30 @@ public class TorneoService {
             torneo.setEncargado(encargado);
         }
 
+
+        String slug = crearSlugSeguro(torneo.getNombre());
+        torneo.setSlug(slug);
+
         return TorneoMapper.toDTO(torneoRepository.save(torneo));
     }
+    public String crearSlugSeguro(String nombreOriginal) {
+        // 1. Limpiamos el nombre (minúsculas y guiones)
+        String slugBase = nombreOriginal.toLowerCase()
+                .replaceAll("[^a-z0-9]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
 
+        String slugFinal = slugBase;
+        int contador = 1;
+
+        // 2. Mientras el slug exista en Cloud SQL, le añadimos un número
+        while (torneoRepository.existsBySlug(slugFinal)) {
+            slugFinal = slugBase + "-" + contador;
+            contador++;
+        }
+
+        return slugFinal;
+    }
 
     // --------------------------
     // LISTAR TORNEOS
@@ -190,7 +211,7 @@ public class TorneoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", key = "#idTorneo") // Limpia el detalle del torneo específico
+            @CacheEvict(value = "torneoDetalle", key = "#result.slug") // Limpia el detalle del torneo específico
     })
     public TorneoDTO agregarZona(Long idTorneo, ZonaDTO zonaDTO) {
 
@@ -215,7 +236,7 @@ public class TorneoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", key = "#idTorneo")
+            @CacheEvict(value = "torneoDetalle", allEntries = true)
     })
     public TorneoDTO quitarZona(Long idTorneo, Long idZona) {
 
@@ -268,7 +289,8 @@ public class TorneoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", key = "#result.torneoId", condition = "#result != null"),
+            // CAMBIO: Limpiamos todos los detalles para asegurar que el slug se actualice
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
             @CacheEvict(value = "zonasPorTorneo", allEntries = true)
     })
     public EquipoZonaDTO agregarEquipoAZona(Long equipoId, Long zonaId) {
@@ -300,9 +322,9 @@ public class TorneoService {
     }
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "torneoDetalle", key = "#id") // Guarda el resultado por ID
+    @Cacheable(value = "torneoDetalle", key = "#id")
     public TorneoDTO obtenerPorId(Long id) {
-        // Usamos el nuevo método optimizado
+
         Torneo torneo = torneoRepository.findByIdOptimized(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
@@ -317,6 +339,40 @@ public class TorneoService {
 
         if (!esAdminGlobal && !esDuenio) {
             throw new AccessDeniedException("No tienes permiso para gestionar este torneo.");
+        }
+
+        return TorneoMapper.toDTO(torneo);
+    }
+
+    @Transactional(readOnly = true)
+    @Cacheable(value = "torneoDetalle", key = "#slug")
+    public TorneoDTO obtenerPorSlug(String slug) {
+        Torneo torneo;
+
+        // 1. Verificamos si el 'slug' recibido es en realidad un ID numérico
+        if (slug.matches("\\d+")) {
+            // Es un número: Buscamos por ID
+            Long id = Long.parseLong(slug);
+            torneo = torneoRepository.findByIdOptimized(id)
+                    .orElseThrow(() -> new RuntimeException("Torneo no encontrado con ID: " + id));
+        } else {
+            // Es texto: Buscamos por la columna Slug
+            torneo = torneoRepository.findBySlugOptimized(slug)
+                    .orElseThrow(() -> new RuntimeException("Torneo no encontrado con el nombre: " + slug));
+        }
+
+        // 2. Lógica de seguridad (se mantiene intacta)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String emailUsuarioAutenticado = auth.getName();
+
+        boolean esAdminGlobal = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        boolean esDuenio = torneo.getEncargado() != null &&
+                torneo.getEncargado().getEmail().equalsIgnoreCase(emailUsuarioAutenticado);
+
+        if (!esAdminGlobal && !esDuenio) {
+            throw new AccessDeniedException("No tienes permiso para ver este torneo.");
         }
 
         return TorneoMapper.toDTO(torneo);

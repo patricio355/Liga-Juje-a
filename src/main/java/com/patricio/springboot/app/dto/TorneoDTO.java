@@ -17,4 +17,5 @@ public class TorneoDTO {
     private LocalDate fechaCreacion;
     private List<ZonaDTO> zonas;
     private String tipo;
+    private String slug;
 }
