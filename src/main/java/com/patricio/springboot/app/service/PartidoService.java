@@ -298,21 +298,15 @@ public class PartidoService {
         Partido partido = partidoRepository.findById(partidoId)
                 .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
 
-        // 🔒 Evitar cerrar dos veces
         if ("FINALIZADO".equals(partido.getEstado())) {
             throw new RuntimeException("El partido ya está cerrado");
         }
 
-        //  Validación opcional (recomendada)
-        // Si hubo goles, deben existir estadísticas
-//        int totalGoles = golesLocal + golesVisitante;
-//        if (totalGoles > 0 && partido.getEstadisticas().isEmpty()) {
-//            throw new RuntimeException("No hay estadísticas cargadas");
-//        }
+        // OBTENER LOS PUNTOS CONFIGURADOS EN EL TORNEO
+        // Navegamos: Partido -> Zona -> Torneo
+        int ptsGanador = partido.getZona().getTorneo().getPuntosGanador();
+        int ptsEmpate = partido.getZona().getTorneo().getPuntosEmpate();
 
-        // ===============================
-        // 🏁 CERRAR PARTIDO
-        // ===============================
         partido.setGolesLocal(golesLocal);
         partido.setGolesVisitante(golesVisitante);
         partido.setEstado("FINALIZADO");
@@ -322,62 +316,42 @@ public class PartidoService {
         } else if (golesVisitante > golesLocal) {
             partido.setGanador(partido.getEquipoVisitante());
         } else {
-            partido.setGanador(null); // empate
+            partido.setGanador(null);
         }
-
-
 
         ProgramacionFecha programacionFecha = programacionRepo
                 .findByPartidoId(partido.getId())
-                .orElseThrow(()->
-                        new RuntimeException("Programacion no encontrada"));
+                .orElseThrow(()-> new RuntimeException("Programacion no encontrada"));
 
         programacionFecha.setEstado("FINALIZADO");
 
-
-        // ===============================
-        // ACTUALIZAR EQUIPO_ZONA
-        // ===============================
-
         EquipoZona ezLocal = equipoZonaRepository
-                .findByZonaIdAndEquipoId(
-                        partido.getZona().getId(),
-                        partido.getEquipoLocal().getId()
-                ).orElseThrow(() ->
-                        new RuntimeException("Equipo local no pertenece a la zona")
-                );
+                .findByZonaIdAndEquipoId(partido.getZona().getId(), partido.getEquipoLocal().getId())
+                .orElseThrow(() -> new RuntimeException("Equipo local no pertenece a la zona"));
 
         EquipoZona ezVisitante = equipoZonaRepository
-                .findByZonaIdAndEquipoId(
-                        partido.getZona().getId(),
-                        partido.getEquipoVisitante().getId()
-                ).orElseThrow(() ->
-                        new RuntimeException("Equipo visitante no pertenece a la zona")
-                );
+                .findByZonaIdAndEquipoId(partido.getZona().getId(), partido.getEquipoVisitante().getId())
+                .orElseThrow(() -> new RuntimeException("Equipo visitante no pertenece a la zona"));
 
-        // Partidos jugados
         ezLocal.setPartidosJugados(ezLocal.getPartidosJugados() + 1);
         ezVisitante.setPartidosJugados(ezVisitante.getPartidosJugados() + 1);
 
-        // Goles
         ezLocal.setGolesAFavor(ezLocal.getGolesAFavor() + golesLocal);
         ezLocal.setGolesEnContra(ezLocal.getGolesEnContra() + golesVisitante);
 
         ezVisitante.setGolesAFavor(ezVisitante.getGolesAFavor() + golesVisitante);
         ezVisitante.setGolesEnContra(ezVisitante.getGolesEnContra() + golesLocal);
 
-        // Resultado
+        // LÓGICA DE PUNTOS DINÁMICA
         if (golesLocal > golesVisitante) {
-
             ezLocal.setGanados(ezLocal.getGanados() + 1);
-            ezLocal.setPuntos(ezLocal.getPuntos() + 3);
+            ezLocal.setPuntos(ezLocal.getPuntos() + ptsGanador); // Usamos ptsGanador del torneo
 
             ezVisitante.setPerdidos(ezVisitante.getPerdidos() + 1);
 
         } else if (golesVisitante > golesLocal) {
-
             ezVisitante.setGanados(ezVisitante.getGanados() + 1);
-            ezVisitante.setPuntos(ezVisitante.getPuntos() + 3);
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + ptsGanador); // Usamos ptsGanador del torneo
 
             ezLocal.setPerdidos(ezLocal.getPerdidos() + 1);
 
@@ -386,13 +360,10 @@ public class PartidoService {
             ezLocal.setEmpatados(ezLocal.getEmpatados() + 1);
             ezVisitante.setEmpatados(ezVisitante.getEmpatados() + 1);
 
-            ezLocal.setPuntos(ezLocal.getPuntos() + 1);
-            ezVisitante.setPuntos(ezVisitante.getPuntos() + 1);
+            ezLocal.setPuntos(ezLocal.getPuntos() + ptsEmpate); // Usamos ptsEmpate del torneo
+            ezVisitante.setPuntos(ezVisitante.getPuntos() + ptsEmpate); // Usamos ptsEmpate del torneo
         }
 
-        // ===============================
-        // 💾 GUARDAR TODO
-        // ===============================
         equipoZonaRepository.save(ezLocal);
         equipoZonaRepository.save(ezVisitante);
         partidoRepository.save(partido);

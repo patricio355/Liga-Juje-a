@@ -36,4 +36,10 @@ public class Torneo {
 
     @Column(unique = true, nullable = false)
     private String slug;
+
+    @Column(name = "puntos_ganador")
+    private Integer puntosGanador = 3; // Valor por defecto
+
+    @Column(name = "puntos_empate")
+    private Integer puntosEmpate = 1;
 }

@@ -100,22 +100,5 @@ public class EquipoZonaService {
                 .toList();
     }
 
-    public void actualizarStats(EquipoZona ez, int golesHechos, int golesRecibidos) {
 
-        ez.setPartidosJugados(ez.getPartidosJugados() + 1);
-        ez.setGolesAFavor(ez.getGolesAFavor() + golesHechos);
-        ez.setGolesEnContra(ez.getGolesEnContra() + golesRecibidos);
-
-        if (golesHechos > golesRecibidos) {
-            ez.setGanados(ez.getGanados() + 1);
-            ez.setPuntos(ez.getPuntos() + 3);
-
-        } else if (golesHechos == golesRecibidos) {
-            ez.setEmpatados(ez.getEmpatados() + 1);
-            ez.setPuntos(ez.getPuntos() + 1);
-
-        } else {
-            ez.setPerdidos(ez.getPerdidos() + 1);
-        }
-    }
 }

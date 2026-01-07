@@ -26,14 +26,18 @@ public class EquipoService {
     private JugadorRepository jugadorRepository;
     private EquipoZonaRepository equipoZonaRepository;
     private UsuarioRepository usuarioRepository;
+    private PartidoService partidoService;
 
-    public EquipoService(EquipoRepository equipoRepository, UsuarioRepository usuarioRepository , ZonaRepository zonaRepository, CanchaRepository canchaRepository , JugadorRepository jugadorRepository, EquipoZonaRepository equipoZonaRepository) {
+
+    public EquipoService(EquipoRepository equipoRepository, UsuarioRepository usuarioRepository,PartidoService partidoService , ZonaRepository zonaRepository, CanchaRepository canchaRepository , JugadorRepository jugadorRepository, EquipoZonaRepository equipoZonaRepository) {
         this.equipoRepository = equipoRepository;
         this.zonaRepository = zonaRepository;
         this.canchaRepository = canchaRepository;
         this.jugadorRepository = jugadorRepository;
         this.equipoZonaRepository = equipoZonaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.partidoService = partidoService;
+
     }
 
 
@@ -104,7 +108,9 @@ public class EquipoService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", allEntries = true)
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true), // Para el fixture público
+            @CacheEvict(value = "programacionData", allEntries = true) // Para que aparezca en la lista de programación
     })
     public EquipoDTO crearEquipo(EquipoDTO dto) {
 
@@ -144,16 +150,81 @@ public class EquipoService {
         }
 
 
-
-
-
-
-
-
         Equipo guardado = equipoRepository.save(equipo);
 
         return EquipoMapper.toDTO(guardado);
     }
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "programacionData", allEntries = true)
+    })
+    public EquipoDTO crearEquipoEnZona(EquipoDTO dto, Long zonaId) {
+        // 1. Buscamos la zona primero (necesitamos el torneo vinculado)
+        Zona zona = zonaRepository.findById(zonaId)
+                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+        Torneo torneo = zona.getTorneo();
+
+        // 2. Lógica de creación del Equipo (Tu lógica original intacta)
+        Equipo equipo = EquipoMapper.toEntity(dto);
+        equipo.setFechaCreacion(LocalDate.now());
+
+        // Asignación de Cancha (Localía)
+        if (dto.getCanchaId() != null) {
+            Cancha cancha = canchaRepository.findById(dto.getCanchaId())
+                    .orElseThrow(() -> new RuntimeException("Cancha inexistente"));
+            equipo.setLocalia(cancha);
+        }
+
+        // Validación de Encargado
+        if (dto.getEncargadoEmail() != null && !dto.getEncargadoEmail().isEmpty()) {
+            Usuario encargado = usuarioRepository.findByEmail(dto.getEncargadoEmail())
+                    .orElseThrow(() -> new RuntimeException("Usuario no existe"));
+
+            if (!"ENCARGADOEQUIPO".equals(encargado.getRol())) {
+                throw new RuntimeException("Este usuario no es un encargado");
+            }
+
+            if (equipoRepository.existsByEncargado(encargado)) {
+                throw new RuntimeException("Este usuario ya es encargado de un equipo");
+            }
+            equipo.setEncargado(encargado);
+        }
+
+        // Guardamos el equipo en la BD
+        Equipo equipoGuardado = equipoRepository.save(equipo);
+
+        // 3. VINCULACIÓN A LA ZONA
+        EquipoZona equipoZona = new EquipoZona();
+        equipoZona.setEquipo(equipoGuardado);
+        equipoZona.setZona(zona);
+
+        // Seteamos el torneoId (Usando el torneo obtenido de la zona arriba)
+        equipoZona.setTorneoId(torneo.getId());
+
+        // Inicializamos estadísticas en 0
+        equipoZona.setPuntos(0);
+        equipoZona.setPartidosJugados(0);
+        equipoZona.setGanados(0);
+        equipoZona.setEmpatados(0);
+        equipoZona.setPerdidos(0);
+        equipoZona.setGolesAFavor(0);
+        equipoZona.setGolesEnContra(0);
+
+        equipoZonaRepository.save(equipoZona);
+
+        // 4. LÓGICA EXTRA: REGENERAR FIXTURE
+        // Si el torneo es ABIERTO, regeneramos automáticamente los partidos
+        if ("ABIERTO".equalsIgnoreCase(torneo.getTipo())) {
+            partidoService.regenerarFixtureZona(zonaId);
+        }
+
+        return EquipoMapper.toDTO(equipoGuardado);
+    }
+
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),

@@ -15,6 +15,8 @@ public class ZonaMapper {
             ZonaDTO dto = new ZonaDTO();
             dto.setId(zona.getId());
             dto.setNombre(zona.getNombre());
+            dto.setTorneoId(zona.getTorneo().getId());
+            dto.setTorneoNombre(zona.getTorneo().getNombre());
 
             // IMPORTANTE: Extraer los equipos de la relación intermedia
             if (zona.getEquiposZona() != null) {
