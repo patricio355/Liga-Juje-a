@@ -153,9 +153,14 @@ public class TorneoController {
 
     // En TorneoController.java
 
-    @GetMapping("/{id}")
+    @GetMapping("/id/{id}")
     public ResponseEntity<TorneoDTO> obtenerPorId(@PathVariable Long id) {
-        // Asegúrate de que el service tenga implementado obtenerPorId
         return ResponseEntity.ok(torneoService.obtenerPorId(id));
+    }
+
+    @GetMapping("/{slug}")
+    public ResponseEntity<TorneoDTO> obtenerPorSlug(@PathVariable String slug) {
+        // El service ahora busca por el texto del slug, no por ID
+        return ResponseEntity.ok(torneoService.obtenerPorSlug(slug));
     }
 }

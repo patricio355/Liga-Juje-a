@@ -25,7 +25,7 @@ public class TorneoMapper {
         dto.setEstado(torneo.getEstado());
         dto.setFechaCreacion(torneo.getFechaCreacion());
         dto.setTipo(torneo.getTipo());
-
+        dto.setSlug(torneo.getSlug());
         if (torneo.getZonas() != null) {
             dto.setZonas(
                     torneo.getZonas().stream()

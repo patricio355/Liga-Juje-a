@@ -5,8 +5,11 @@ import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.EquipoZonaMapper;
 import com.patricio.springboot.app.mapper.JugadorMapper;
 import com.patricio.springboot.app.repository.*;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import com.patricio.springboot.app.mapper.EquipoMapper;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -98,7 +101,11 @@ public class EquipoService {
                 .collect(Collectors.toList());
     }
 
-
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true)
+    })
     public EquipoDTO crearEquipo(EquipoDTO dto) {
 
         Equipo equipo = EquipoMapper.toEntity(dto);
@@ -147,7 +154,11 @@ public class EquipoService {
 
         return EquipoMapper.toDTO(guardado);
     }
-
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true)
+    })
     public EquipoDTO eliminarEquipo(Long id) {
         Equipo eq = equipoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Equipo no existe"));
@@ -156,7 +167,12 @@ public class EquipoService {
         equipoRepository.save(eq);
         return EquipoMapper.toDTO(eq);
     }
-
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true)
+    })
     public EquipoDTO editarEquipo(Long id, EquipoDTO dto) {
 
         Equipo equipo = equipoRepository.findById(id)

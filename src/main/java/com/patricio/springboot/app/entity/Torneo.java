@@ -33,4 +33,7 @@ public class Torneo {
     private LocalDate fechaCreacion;
 
     private String tipo;
+
+    @Column(unique = true, nullable = false)
+    private String slug;
 }
