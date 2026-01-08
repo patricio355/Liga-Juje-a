@@ -20,4 +20,6 @@ public class TorneoDTO {
     private String slug;
     private Integer puntosGanador;
     private Integer puntosEmpate;
+    private Long creadorId;
+    private String creadorEmail;
 }

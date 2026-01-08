@@ -3,6 +3,7 @@ import com.patricio.springboot.app.dto.UsuarioDTO;
 import com.patricio.springboot.app.entity.Usuario;
 import com.patricio.springboot.app.mapper.UsuarioMapper;
 import com.patricio.springboot.app.repository.UsuarioRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +49,12 @@ public class UsuarioService {
                 .stream()
                 .map(UsuarioMapper::toDTO)
                 .toList();
+    }
+
+    @Cacheable(value = "usuariosEncargados")
+    public List<UsuarioDTO> listarEncargadosOptimizado() {
+        // Usamos el rol que definiste en tu lógica anterior
+        return usuarioRepository.findUsuariosByRol("ENCARGADOTORNEO");
     }
 
     // =========================

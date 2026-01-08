@@ -66,4 +66,16 @@ public class UsuarioController {
         usuarioService.desactivarUsuario(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/encargados")
+    public ResponseEntity<List<UsuarioDTO>> getEncargados() {
+        // Llamamos al método optimizado que creamos en el Service
+        List<UsuarioDTO> encargados = usuarioService.listarEncargadosOptimizado();
+
+        if (encargados.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(encargados);
+    }
 }

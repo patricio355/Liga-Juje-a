@@ -36,7 +36,9 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
     @Query("SELECT DISTINCT t FROM Torneo t LEFT JOIN FETCH t.zonas")
     List<Torneo> findAllWithZonas();
 
-    @Query("SELECT DISTINCT t FROM Torneo t LEFT JOIN FETCH t.zonas WHERE t.encargado.email = :email")
+    @Query("SELECT DISTINCT t FROM Torneo t " +
+            "LEFT JOIN FETCH t.zonas " +
+            "WHERE t.encargado.email = :email")
     List<Torneo> findByEncargadoEmailWithZonas(@Param("email") String email);
 
     boolean existsBySlug(String slugFinal);
