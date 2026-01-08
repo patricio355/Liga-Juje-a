@@ -26,6 +26,8 @@ public class TorneoMapper {
         dto.setFechaCreacion(torneo.getFechaCreacion());
         dto.setTipo(torneo.getTipo());
         dto.setSlug(torneo.getSlug());
+        dto.setCreadorEmail(torneo.getCreador().getEmail());
+        dto.setCreadorId(torneo.getCreador().getId());
         dto.setPuntosEmpate(torneo.getPuntosEmpate());
         dto.setPuntosGanador(torneo.getPuntosGanador());
         if (torneo.getZonas() != null) {
@@ -89,6 +91,7 @@ public class TorneoMapper {
         t.setTipo(dto.getTipo());
         t.setPuntosGanador(dto.getPuntosGanador());
         t.setPuntosEmpate(dto.getPuntosEmpate());
+
         return t;
     }
 }

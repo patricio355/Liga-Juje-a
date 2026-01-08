@@ -28,6 +28,8 @@ public class EquipoDTO {
     private Long zonaId;
     private Long canchaId;
     private String encargadoEmail;
+    private Long creadorId;
+    private String creadorEmail;
 
     public EquipoDTO(Long id, String nombre, String escudo) {
     }

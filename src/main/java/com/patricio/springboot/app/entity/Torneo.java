@@ -42,4 +42,8 @@ public class Torneo {
 
     @Column(name = "puntos_empate")
     private Integer puntosEmpate = 1;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creador_id")
+    private Usuario creador;
 }

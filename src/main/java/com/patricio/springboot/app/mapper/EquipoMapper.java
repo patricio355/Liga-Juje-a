@@ -19,7 +19,8 @@ public final class EquipoMapper {
         dto.setFechaCreacion(e.getFechaCreacion().toString());
         dto.setCanchaId(e.getLocalia() != null ? e.getLocalia().getId() : null);
         dto.setEncargadoEmail(e.getEncargado() != null ? e.getEncargado().getEmail() : null);
-
+        dto.setCreadorId(e.getCreador() != null ? e.getCreador().getId() : null);
+        dto.setCreadorEmail(e.getCreador() != null ? e.getCreador().getEmail() : null);
         return dto;
     }
 

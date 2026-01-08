@@ -37,7 +37,7 @@ public class Equipo {
     private String camisetaTitular;
     private String camisetaSuplente;
     private LocalDate fechaCreacion;
-    private boolean estado;
+    private boolean estado = true;
 
     @ManyToOne
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -45,7 +45,9 @@ public class Equipo {
     private Cancha localia;
 
 
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creador_id")
+    private Usuario creador;
 
     public void addJugador(Jugador jugador) {
         if (this.jugadores == null) {

@@ -44,9 +44,7 @@ public class TorneoService {
         this.partidoService = partidoService;
         this.equipoService = equipoService;
     }
-    // --------------------------
-    // CREAR TORNEO
-    // --------------------------
+
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true)
@@ -59,13 +57,31 @@ public class TorneoService {
         boolean esAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
+
+        String emailAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario usuarioLogueado = usuarioRepository.findByEmail(emailAutenticado).orElseThrow();
+
+
+        if (usuarioLogueado.getRol().equals("ROLE_ADMIN") && dto.getEncargadoEmail() != null) {
+
+            Usuario encargadoAsignado = usuarioRepository.findByEmail(dto.getEncargadoEmail()).orElseThrow();
+            torneo.setEncargado(encargadoAsignado);
+        } else {
+
+            torneo.setEncargado(usuarioLogueado);
+        }
+
+
+        torneo.setCreador(usuarioLogueado);
+
+
         String emailEncargado;
 
         if (esAdmin) {
-            // ADMIN puede elegir encargado
+
             emailEncargado = dto.getEncargadoEmail();
         } else {
-            // 🔒 ENCARGADO → SIEMPRE él mismo
+
             emailEncargado = auth.getName();
         }
 
@@ -112,10 +128,6 @@ public class TorneoService {
         return slugFinal;
     }
 
-    // --------------------------
-    // LISTAR TORNEOS
-    // --------------------------
-
     @Cacheable(value = "dashboardTorneos")
     public List<TorneoDTO> listarTorneos() {
         return torneoRepository.findAllWithZonas()
@@ -133,9 +145,7 @@ public class TorneoService {
                 .toList();
     }
 
-    // --------------------------
-    // MODIFICAR TORNEO
-    // --------------------------
+
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
@@ -188,9 +198,7 @@ public class TorneoService {
     }
 
 
-    // --------------------------
-    // ELIMINAR TORNEO
-    // --------------------------
+
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
@@ -205,9 +213,7 @@ public class TorneoService {
         torneoRepository.save(torneo);
     }
 
-    // --------------------------
-    // AGREGAR ZONA A TORNEO
-    // --------------------------
+
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
@@ -230,9 +236,7 @@ public class TorneoService {
         return toDTO(torneo);
     }
 
-    // --------------------------
-    // QUITAR ZONA
-    // --------------------------
+
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
@@ -255,7 +259,6 @@ public class TorneoService {
 
         return TorneoMapper.toDTO(torneo);
     }
-
 
 
     public List<TorneoDTO> torneosDisponiblesParaEquipo(Long equipoId) {

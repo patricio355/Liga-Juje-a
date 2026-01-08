@@ -17,4 +17,10 @@ public class UsuarioDTO {
     private String domicilio;
     private String rol;
     private Boolean activo;
+
+    public UsuarioDTO(Long id, String nombre, String email) {
+        this.id = id;
+        this.nombre = nombre;
+        this.email = email;
+    }
 }

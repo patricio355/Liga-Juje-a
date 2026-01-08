@@ -2,6 +2,7 @@ package com.patricio.springboot.app.controller;
 
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -89,6 +90,20 @@ public class EquipoController {
             @RequestBody EquipoDTO dto,
             @PathVariable Long zonaId) {
         return ResponseEntity.ok(equipoService.crearEquipoEnZona(dto, zonaId));
+    }
+
+    @GetMapping("/mis-equipos")
+    public ResponseEntity<List<EquipoDTO>> getMisEquipos(Principal principal) {
+        String email = principal.getName();
+
+        // El service ahora decide si devolver TODO o solo lo del usuario
+        List<EquipoDTO> equipos = equipoService.listarEquiposSegunRol(email);
+
+        if (equipos.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(equipos);
     }
 
 

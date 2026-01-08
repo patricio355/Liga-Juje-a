@@ -6,7 +6,9 @@ import com.patricio.springboot.app.mapper.EquipoZonaMapper;
 import com.patricio.springboot.app.mapper.JugadorMapper;
 import com.patricio.springboot.app.repository.*;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import com.patricio.springboot.app.mapper.EquipoMapper;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,11 +40,6 @@ public class EquipoService {
         this.usuarioRepository = usuarioRepository;
         this.partidoService = partidoService;
 
-    }
-
-
-    public Equipo getEquipoById(Long idEquipo) {
-        return equipoRepository.findById(idEquipo).orElseThrow( () -> new RuntimeException("equipo no encontrado"));
     }
 
     public List<EquipoDTO> listarEquipos() {
@@ -92,7 +89,24 @@ public class EquipoService {
                 .toList();
     }
 
+    public List<EquipoDTO> listarEquiposSegunRol(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email).orElseThrow();
 
+        boolean esAdmin = usuario.getRol().equalsIgnoreCase("ROLE_ADMIN") ||
+                usuario.getRol().equalsIgnoreCase("ADMIN");
+
+        if (esAdmin) {
+            // Usamos el nuevo método que filtra por estado = true
+            return equipoRepository.findAllActivos().stream()
+                    .map(EquipoMapper::toDTO)
+                    .toList();
+        }
+
+        // Usamos el nuevo método filtrado para encargados
+        return equipoRepository.findByCreadorEmailAndEstadoTrue(email).stream()
+                .map(EquipoMapper::toDTO)
+                .toList();
+    }
 
     public List<JugadorDTO> listarJugadores(Long idEquipo) {
 
@@ -149,11 +163,34 @@ public class EquipoService {
             equipo.setEncargado(encargado);
         }
 
+        // Obtenemos el usuario logueado
+        String emailAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+        Usuario usuarioLogueado = usuarioRepository.findByEmail(emailAutenticado).orElseThrow();
+
+        // Cambia esta sección en tu EquipoService.java
+        if (usuarioLogueado.getRol().equalsIgnoreCase("ROLE_ADMIN") || usuarioLogueado.getRol().equalsIgnoreCase("ADMIN")) {
+
+            // Verificamos que no sea null ni esté vacío
+            if (dto.getCreadorEmail() != null && !dto.getCreadorEmail().trim().isEmpty()) {
+                Usuario dueñoAsignado = usuarioRepository.findByEmail(dto.getCreadorEmail())
+                        .orElseThrow(() -> new RuntimeException("El usuario asignado como creador no existe"));
+                equipo.setCreador(dueñoAsignado);
+            } else {
+                // Si es Admin pero no eligió a nadie en el select, se queda él como dueño
+                equipo.setCreador(usuarioLogueado);
+            }
+
+        } else {
+            // Si lo crea un encargado común, él es el dueño
+            equipo.setCreador(usuarioLogueado);
+        }
+
 
         Equipo guardado = equipoRepository.save(equipo);
 
         return EquipoMapper.toDTO(guardado);
     }
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
@@ -224,7 +261,6 @@ public class EquipoService {
         return EquipoMapper.toDTO(equipoGuardado);
     }
 
-
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
@@ -238,6 +274,7 @@ public class EquipoService {
         equipoRepository.save(eq);
         return EquipoMapper.toDTO(eq);
     }
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
@@ -322,8 +359,6 @@ public class EquipoService {
         return EquipoMapper.toDTO(equipo);
     }
 
-
-
     public EquipoDTO asignarCancha(Long idEquipo, Long idCancha) {
 
         Equipo equipo = equipoRepository.findById(idEquipo)
@@ -337,6 +372,7 @@ public class EquipoService {
         Equipo actualizado = equipoRepository.save(equipo);
         return EquipoMapper.toDTO(actualizado);
     }
+
     public EquipoDTO asignarZona(Long idEquipo, Long idZona) {
 
         Equipo equipo = equipoRepository.findById(idEquipo)
@@ -395,8 +431,12 @@ public class EquipoService {
         return EquipoMapper.toDTO(actualizado);
     }
 
-
-
-
+    @Cacheable(value = "misEquipos", key = "#email")
+    public List<EquipoDTO> listarEquiposDelUsuario(String email) {
+        return equipoRepository.findByCreadorEmail(email)
+                .stream()
+                .map(EquipoMapper::toDTO)
+                .toList();
+    }
 
 }
