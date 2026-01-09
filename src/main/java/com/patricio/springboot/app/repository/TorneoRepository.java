@@ -42,4 +42,7 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
     List<Torneo> findByEncargadoEmailWithZonas(@Param("email") String email);
 
     boolean existsBySlug(String slugFinal);
+
+    boolean existsByNombreIgnoreCaseAndEstadoIgnoreCase(String nombre, String estado);
+    boolean existsByNombreIgnoreCaseAndEstadoIgnoreCaseAndIdNot(String nombre, String estado, Long id);
 }

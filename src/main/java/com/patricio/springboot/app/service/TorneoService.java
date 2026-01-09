@@ -51,6 +51,11 @@ public class TorneoService {
     })
     public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
+        boolean existeActivo = torneoRepository.existsByNombreIgnoreCaseAndEstadoIgnoreCase(dto.getNombre(), "activo");
+        if (existeActivo) {
+            throw new RuntimeException("Ya existe un torneo activo con el nombre: " + dto.getNombre());
+        }
+
         Torneo torneo = TorneoMapper.toEntity(dto);
         torneo.setFechaCreacion(LocalDate.now());
 
@@ -109,6 +114,7 @@ public class TorneoService {
 
         return TorneoMapper.toDTO(torneoRepository.save(torneo));
     }
+
     public String crearSlugSeguro(String nombreOriginal) {
         // 1. Limpiamos el nombre (minúsculas y guiones)
         String slugBase = nombreOriginal.toLowerCase()
@@ -153,12 +159,22 @@ public class TorneoService {
     })
     public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
 
+        // 1. Buscamos el torneo existente
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
-        // =========================
-        // DATOS BÁSICOS
-        // =========================
+// 2. Validamos duplicados EXCLUYENDO el torneo actual mediante su ID
+        boolean existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndEstadoIgnoreCaseAndIdNot(
+                dto.getNombre(),
+                "activo",
+                id
+        );
+
+        if (existeOtroActivo) {
+            throw new RuntimeException("Ya existe otro torneo activo con el nombre: " + dto.getNombre());
+        }
+
+// 3. Si pasa la validación, procedemos a actualizar
         torneo.setNombre(dto.getNombre());
         torneo.setDivision(dto.getDivision());
         torneo.setEstado(dto.getEstado());
@@ -294,7 +310,8 @@ public class TorneoService {
             @CacheEvict(value = "torneosActivos", allEntries = true),
             // CAMBIO: Limpiamos todos los detalles para asegurar que el slug se actualice
             @CacheEvict(value = "torneoDetalle", allEntries = true),
-            @CacheEvict(value = "zonasPorTorneo", allEntries = true)
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
     })
     public EquipoZonaDTO agregarEquipoAZona(Long equipoId, Long zonaId) {
         // 1. Inscribir equipo (Aquí es donde el Service debe validar si ya existe)

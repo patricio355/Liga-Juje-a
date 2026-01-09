@@ -188,7 +188,8 @@ public class EquipoService {
             @CacheEvict(value = "torneoDetalle", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
             @CacheEvict(value = "programacionData", allEntries = true),
-            @CacheEvict(value = "misEquipos", allEntries = true)
+            @CacheEvict(value = "misEquipos", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
     })
     public EquipoDTO crearEquipoEnZona(EquipoDTO dto, Long zonaId) {
         // 1. Datos de la Zona y Torneo
@@ -351,7 +352,19 @@ public class EquipoService {
         equipo.setLocalidad(dto.getLocalidad());
         equipo.setEscudo(dto.getEscudo());
         equipo.setEstado(dto.getEstado());
+        equipo.setCamisetaSuplente(dto.getCamisetaSuplente());
+        equipo.setCamisetaTitular(dto.getCamisetaTitular());
+        if (dto.getCanchaId() != null) {
+            // Buscar la entidad Cancha real en la base de datos
+            Cancha cancha = canchaRepository.findById(dto.getCanchaId())
+                    .orElseThrow(() -> new RuntimeException("Cancha no encontrada con ID: " + dto.getCanchaId()));
 
+            // Asignar el objeto Cancha completo al Equipo
+            equipo.setLocalia(cancha);
+        } else {
+            // Si es opcional, puedes setearlo como null
+            equipo.setLocalia(null);
+        }
         // 💾 Guardar equipo
         equipoRepository.save(equipo);
 
