@@ -97,7 +97,7 @@ public class EquipoService {
 
         if (esAdmin) {
             // Usamos el nuevo método que filtra por estado = true
-            return equipoRepository.findAllActivos().stream()
+            return equipoRepository.findAllComplete().stream()
                     .map(EquipoMapper::toDTO)
                     .toList();
         }

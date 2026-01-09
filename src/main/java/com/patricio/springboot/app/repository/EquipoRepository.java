@@ -22,6 +22,9 @@ public interface EquipoRepository extends JpaRepository<Equipo, Long> {
     @Query("SELECT e FROM Equipo e WHERE e.estado = true")
     List<Equipo> findAllActivos();
 
+    @Query("SELECT DISTINCT e FROM Equipo e LEFT JOIN FETCH e.creador")
+    List<Equipo> findAllComplete();
+
     // Para el Encargado: Traer sus equipos que NO estén eliminados
     @Query("SELECT e FROM Equipo e WHERE e.creador.email = :email AND e.estado = true")
     List<Equipo> findByCreadorEmailAndEstadoTrue(@Param("email") String email);
