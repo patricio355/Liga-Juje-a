@@ -17,10 +17,13 @@ public class UsuarioDTO {
     private String domicilio;
     private String rol;
     private Boolean activo;
+    private Long creadorId;
+    private String creadorNombre;
 
     public UsuarioDTO(Long id, String nombre, String email) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
     }
+
 }

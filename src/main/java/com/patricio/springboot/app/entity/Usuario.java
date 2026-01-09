@@ -8,7 +8,9 @@ import lombok.*;
 @Entity
 @Table(name = "usuarios")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+// Usamos "rol" como discriminador
 @DiscriminatorColumn(name = "rol", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorValue("Usuario") // Valor por defecto si no se especifica otro
 @Data
 public class Usuario {
 
@@ -27,5 +29,8 @@ public class Usuario {
     private String rol; // ADMIN, ENCARGADO, ENCARGADOTORNEO, ARBITRO, VEEDOR
 
     private boolean activo = true;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_creador")
+    private Usuario creador;
 }
 
