@@ -5,17 +5,13 @@ import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.TorneoMapper;
-import com.patricio.springboot.app.repository.EquipoZonaRepository;
-import com.patricio.springboot.app.repository.TorneoRepository;
-import com.patricio.springboot.app.repository.UsuarioRepository;
-import com.patricio.springboot.app.repository.ZonaRepository;
+import com.patricio.springboot.app.repository.*;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
-import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static com.patricio.springboot.app.mapper.TorneoMapper.toDTO;
-import static java.util.stream.Collectors.toList;
+
 
 @Service
 public class TorneoService {
@@ -34,8 +30,9 @@ public class TorneoService {
     private EquipoZonaRepository equipoZonaRepository;
     private EquipoZonaService equipoZonaService;
     private PartidoService partidoService;
+    private ProgramacionFechaService programacionService;
 
-    public TorneoService(TorneoRepository torneoRepository, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository, EquipoZonaService equipoZonaService, PartidoService partidoService, EquipoService equipoService) {
+    public TorneoService(TorneoRepository torneoRepository,ProgramacionFechaService programacionFechaService, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository, EquipoZonaService equipoZonaService, PartidoService partidoService, EquipoService equipoService) {
         this.torneoRepository = torneoRepository;
         this.zonaRepository = zonaRepository;
         this.equipoZonaRepository = equipoZonaRepository;
@@ -43,6 +40,7 @@ public class TorneoService {
         this.equipoZonaService = equipoZonaService;
         this.partidoService = partidoService;
         this.equipoService = equipoService;
+        this.programacionService = programacionService;
     }
 
     @Caching(evict = {
@@ -256,8 +254,11 @@ public class TorneoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", allEntries = true)
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
     })
+    @Transactional // ¡MUY IMPORTANTE! Si algo falla, no borra nada a medias
     public TorneoDTO quitarZona(Long idTorneo, Long idZona) {
 
         Torneo torneo = torneoRepository.findById(idTorneo)
@@ -270,6 +271,16 @@ public class TorneoService {
             throw new RuntimeException("La zona no pertenece a este torneo");
         }
 
+        // 1. LIMPIEZA DE DEPENDENCIAS (Evita el error de Foreign Key)
+        // Borrar programaciones de los partidos de esta zona
+
+        // Borrar los partidos de esta zona
+        partidoService.eliminarProgramacionesDeZona(idZona);
+
+        // Borrar la tabla de posiciones (la foto que me mandaste) de esta zona
+        equipoZonaRepository.deleteByZonaId(idZona);
+
+        // 2. BORRADO DE LA ZONA
         torneo.getZonas().remove(zona);
         zonaRepository.delete(zona);
 

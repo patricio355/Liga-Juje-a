@@ -96,4 +96,6 @@ public interface ProgramacionFechaRepository
     @Query(value = "SELECT DISTINCT numero_fecha FROM programacion_fecha WHERE zona_id = :zonaId ORDER BY numero_fecha ASC",
             nativeQuery = true)
     List<Integer> findDistinctFechasByZonaId(@Param("zonaId") Long zonaId);
+
+    void deleteByPartido_Zona_Id(Long idZona);
 }

@@ -245,11 +245,11 @@ public class EquipoService {
         if (equipoGuardado.getCreador() == null) {
             throw new RuntimeException("ERROR CRÍTICO: El equipo se iba a guardar sin creador. Transacción abortada.");
         }
-        System.out.println("EQUIPO GUARDADO CON ÉXITO - ID: " + equipoGuardado.getId() + " - CREADOR: " + equipoGuardado.getCreador().getEmail());
 
         // 4. VINCULACIÓN Y ESTADÍSTICAS
         EquipoZona equipoZona = new EquipoZona();
         equipoZona.setEquipo(equipoGuardado);
+        equipoZona.setNombreEquipo(equipoGuardado.getNombre());
         equipoZona.setZona(zona);
         equipoZona.setTorneoId(torneo.getId());
 

@@ -47,4 +47,6 @@ public interface EquipoZonaRepository extends JpaRepository<EquipoZona, Long> {
             ez.golesAFavor DESC
    """)
     List<EquipoZona> listarTablaPosiciones(Long zonaId);
+
+    void deleteByZonaId(Long idZona);
 }

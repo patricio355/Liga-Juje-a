@@ -31,7 +31,7 @@ public class PartidoService {
     private final SolicitudCierrePartidoRepository solicitudRepo;
     private final ProgramacionFechaRepository programacionRepo;
     private final UsuarioRepository usuarioRepository;
-
+    private final ProgramacionFechaService programacionService;
 
     @Transactional
     @Caching(evict = {
@@ -206,7 +206,12 @@ public class PartidoService {
 
 
 
-
+    @org.springframework.transaction.annotation.Transactional
+    public void eliminarProgramacionesDeZona(Long idZona) {
+        // Usamos el repositorio para borrar en cascada
+        programacionService.eliminarProgramacionesDeZona(idZona);
+        partidoRepository.deleteByZonaId(idZona);
+    }
 
 
     @Transactional
@@ -229,6 +234,7 @@ public class PartidoService {
 
         generarPartidosFaltantes(zona, equipos, ultimaFecha + 1);
     }
+
     private void generarPartidosFaltantes(
             Zona zona,
             List<Equipo> equipos,
@@ -490,6 +496,58 @@ public class PartidoService {
         // 6. Persistencia final en ambas tablas
         programacionRepo.save(pf);
         partidoRepository.save(partido);
+    }
+
+
+    @Transactional
+    public void eliminarYRestaurarPartidosPorEquipo(Long zonaId, Long equipoId) {
+        // 1. Buscar todos los partidos del equipo en esa zona (Local o Visitante)
+        List<Partido> partidos = partidoRepository.findAllByZonaIdAndEquipoId(zonaId, equipoId);
+
+        for (Partido partido : partidos) {
+            // A. Borrar programación siempre (si existe) para evitar error de FK
+            programacionService.eliminarProgramacionPorPartido(partido.getId());
+
+            if ("FINALIZADO".equals(partido.getEstado())) {
+                // B. Si el partido se jugó, actualizamos al RIVAL para restarle los puntos/goles
+                actualizarEstadisticasRivalPorEliminacion(partido, equipoId);
+            }
+
+            // C. Borrar el partido físicamente
+            partidoRepository.delete(partido);
+        }
+    }
+
+    private void actualizarEstadisticasRivalPorEliminacion(Partido partido, Long equipoEliminadoId) {
+        boolean fueLocalElEliminado = partido.getEquipoLocal().getId().equals(equipoEliminadoId);
+        Long rivalId = fueLocalElEliminado ? partido.getEquipoVisitante().getId() : partido.getEquipoLocal().getId();
+
+        // Buscamos la fila del rival en la tabla de posiciones
+        EquipoZona rivalZona = equipoZonaRepository.findByZonaIdAndEquipoId(partido.getZona().getId(), rivalId)
+                .orElse(null);
+
+        if (rivalZona != null) {
+            int golesRival = fueLocalElEliminado ? partido.getGolesVisitante() : partido.getGolesLocal();
+            int golesEliminado = fueLocalElEliminado ? partido.getGolesLocal() : partido.getGolesVisitante();
+
+            // REVERSA DE ESTADÍSTICAS
+            rivalZona.setPartidosJugados(rivalZona.getPartidosJugados() - 1);
+            rivalZona.setGolesAFavor(rivalZona.getGolesAFavor() - golesRival);
+            rivalZona.setGolesEnContra(rivalZona.getGolesEnContra() - golesEliminado);
+
+            // Reversa de Puntos y Resultados
+            if (golesRival > golesEliminado) { // El rival había ganado
+                rivalZona.setGanados(rivalZona.getGanados() - 1);
+                rivalZona.setPuntos(rivalZona.getPuntos() - 3);
+            } else if (golesRival == golesEliminado) { // Habían empatado
+                rivalZona.setEmpatados(rivalZona.getEmpatados() - 1);
+                rivalZona.setPuntos(rivalZona.getPuntos() - 1);
+            } else { // El rival había perdido
+                rivalZona.setPerdidos(rivalZona.getPerdidos() - 1);
+            }
+
+            equipoZonaRepository.save(rivalZona);
+        }
     }
 
 }
