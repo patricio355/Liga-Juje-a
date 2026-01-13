@@ -110,10 +110,22 @@ public class ProgramacionFechaService {
         programacionRepository.save(pf);
     }
 
-    /**
-     * Obtiene los partidos programados para una fecha específica.
-     * El caché se limpia automáticamente cuando se ejecuta programarPartido.
-     */
+    @Transactional
+    public void eliminarProgramacionesDeZona(Long idZona) {
+        // Usamos el repositorio para borrar en cascada
+        programacionRepository.deleteByPartido_Zona_Id(idZona);
+    }
+
+    @Transactional
+    public void eliminarProgramacionPorPartido(Long partidoId) {
+        // Buscamos si existe una programación para este partido
+        // Usamos un repositorio de programación (ej. ProgramacionRepository)
+        programacionRepository.findByPartidoId(partidoId).ifPresent(prog -> {
+            // Opcional: Si manejas estados de disponibilidad en canchas, podrías liberarla aquí
+            programacionRepository.delete(prog);
+        });
+    }
+
     @Transactional(readOnly = true)
    @Cacheable(value = "programacion", key = "{#zonaId, #fecha}")
     public List<PartidoProgramadoDTO> obtenerProgramacion(Long zonaId, Integer fecha) {

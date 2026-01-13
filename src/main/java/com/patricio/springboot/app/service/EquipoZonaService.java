@@ -26,6 +26,7 @@ public class EquipoZonaService {
     private final EquipoZonaRepository equipoZonaRepository;
     private final EquipoRepository equipoRepository;
     private final ZonaRepository zonaRepository;
+    private final PartidoService partidoService;
 
     @Transactional
     @Caching(evict = {
@@ -80,8 +81,35 @@ public class EquipoZonaService {
                 .toList();
     }
 
-    public void eliminarParticipacion(Long id) {
-        equipoZonaRepository.deleteById(id);
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "partidosZona", allEntries = true),
+            @CacheEvict(value = "partidosPorZona", allEntries = true),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true),
+            @CacheEvict(value = "programacion", allEntries = true),
+            @CacheEvict(value = "torneos", allEntries = true),
+            @CacheEvict(value = "programacionZona", allEntries = true),
+            @CacheEvict(value = "fechasDisponibles", allEntries = true),
+            @CacheEvict(value = "proximosPartidos", allEntries = true)
+    })
+    @Transactional
+    public void eliminarParticipacion(Long idEquipoZona) {
+        // 1. Obtener la participación para conocer el Equipo y la Zona
+        EquipoZona participacion = equipoZonaRepository.findById(idEquipoZona)
+                .orElseThrow(() -> new RuntimeException("Participación no encontrada"));
+
+        Long equipoId = participacion.getEquipo().getId();
+        Long zonaId = participacion.getZona().getId();
+
+        // 2. Delegar a PartidoService la limpieza de partidos y programaciones
+        // Pasamos equipoId y zonaId para que solo afecte a esta liga/zona específica
+        partidoService.eliminarYRestaurarPartidosPorEquipo(zonaId, equipoId);
+
+        // 3. Finalmente, eliminar la participación (la fila de la tabla de posiciones)
+        equipoZonaRepository.delete(participacion);
     }
 
     public EquipoZonaDTO obtenerEstadisticas(Long id) {

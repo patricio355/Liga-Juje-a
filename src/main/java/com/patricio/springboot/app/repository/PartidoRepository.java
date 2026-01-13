@@ -40,4 +40,9 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
             "AND p.equipoVisitante IS NOT NULL " +
             "ORDER BY p.numeroFecha ASC")
     List<Integer> findDistinctNumeroFechaByZonaId(@Param("zonaId") Long zonaId);
+
+    void deleteByZonaId(Long idZona);
+
+    @Query("SELECT p FROM Partido p WHERE p.zona.id = :zonaId AND (p.equipoLocal.id = :equipoId OR p.equipoVisitante.id = :equipoId)")
+    List<Partido> findAllByZonaIdAndEquipoId(Long zonaId, Long equipoId);
 }
