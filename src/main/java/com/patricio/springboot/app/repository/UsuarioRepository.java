@@ -28,7 +28,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     List<Usuario> findAllActivos();
 
     // Para el Encargado: Solo sus usuarios creados que estén activos
-    @Query("SELECT u FROM Usuario u WHERE u.creador.id = :creadorId AND u.activo = true")
+    @Query("SELECT u FROM Usuario u WHERE u.creador.id = :creadorId")
     List<Usuario> findByCreadorId(@Param("creadorId") Long creadorId);
 
 }

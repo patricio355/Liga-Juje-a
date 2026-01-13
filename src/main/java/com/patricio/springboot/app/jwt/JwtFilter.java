@@ -1,6 +1,7 @@
 package com.patricio.springboot.app.jwt;
 
 import com.patricio.springboot.app.service.UserDetailsServiceImpl;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,41 +31,45 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Leer el header Authorization
         String authHeader = request.getHeader("Authorization");
-
         String token = null;
         String email = null;
 
-        // Si existe y empieza con Bearer, extraemos token y usuario
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7); // quitar "Bearer "
-            email = jwtUtil.extractUsername(token);
-        }
-
-        // Si hay email y no hay autenticación en el contexto
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-            UserDetails user = userDetailsService.loadUserByUsername(email);
-
-            // Validar token
-            if (jwtUtil.validateToken(token, user)) {
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                user.getAuthorities()
-                        );
-
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                // Establecer autenticación en el contexto de Spring
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            // 1. Extraer el token del header
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+                email = jwtUtil.extractUsername(token);
             }
+
+            // 2. Si hay email y no hay autenticación previa en el contexto
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails user = userDetailsService.loadUserByUsername(email);
+
+                // 3. Validar el token contra los datos del usuario
+                if (jwtUtil.validateToken(token, user)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    user,
+                                    null,
+                                    user.getAuthorities()
+                            );
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // Establecer la autenticación en Spring Security
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+        } catch (ExpiredJwtException e) {
+            // Manejo específico si el token caducó mientras el usuario navegaba
+            logger.warn("El token JWT ha expirado");
+        } catch (Exception e) {
+            // Cualquier otro error de parseo o firma del token
+            logger.error("Error procesando el token JWT: " + e.getMessage());
         }
 
-        // Continuar con el resto de los filtros
+        // 4. Continuar con la cadena de filtros pase lo que pase
         filterChain.doFilter(request, response);
     }
 }

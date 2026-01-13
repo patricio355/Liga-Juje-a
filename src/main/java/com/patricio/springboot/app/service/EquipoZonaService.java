@@ -70,9 +70,6 @@ public class EquipoZonaService {
         return EquipoZonaMapper.toDTO(guardado);
     }
 
-
-
-
     @Cacheable(value = "equiposPorZona", key = "#zonaId")
     public List<EquipoDTO> listarEquiposPorZona(Long zonaId) {
         return equipoZonaRepository.listarTablaPosiciones(zonaId)
