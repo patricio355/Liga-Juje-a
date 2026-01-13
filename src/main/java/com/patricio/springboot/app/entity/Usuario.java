@@ -4,6 +4,8 @@ package com.patricio.springboot.app.entity;
 import jakarta.persistence.*;
 import jdk.jfr.Enabled;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "usuarios")
@@ -31,6 +33,7 @@ public class Usuario {
     private boolean activo = true;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_creador")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Usuario creador;
 }
 

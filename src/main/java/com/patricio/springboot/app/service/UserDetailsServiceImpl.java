@@ -22,9 +22,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
+        // Como es un boolean primitivo, lo pasamos directamente
         return new org.springframework.security.core.userdetails.User(
                 usuario.getEmail(),
                 usuario.getContrasenia(),
+                usuario.isActivo(),
+                true,
+                true,
+                true,
                 List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol()))
         );
     }

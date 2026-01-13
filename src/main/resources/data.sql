@@ -13,9 +13,9 @@ VALUES
 -- 3) ENCARGADOS (Usuarios con tipo Encargado)
 -- ================================================
 INSERT INTO usuarios
-(id, dtype, nombre, email, dni, telefono, domicilio, contrasenia, rol, activo)
+(id, nombre, email, dni, telefono, domicilio, contrasenia, rol, activo)
 VALUES
-    (1, 'Administrador', 'Patricio Quiroga', 'patricioquiroga355@gmail.com',
+    (1,  'Patricio Quiroga', 'patricioquiroga355@gmail.com',
      '41844570', '3885123456', 'SSJ',
      '$2a$10$iYVMDyD5MgsydByu2jN37.DPv/hd/f9cpt/oP.zQBnkQNlyMoWs4G',
      'ADMIN', true);

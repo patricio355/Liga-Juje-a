@@ -153,7 +153,7 @@ public class TorneoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", key = "#id") // Limpia el detalle específico
+            @CacheEvict(value = "torneoDetalle", allEntries = true)
     })
     public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
 

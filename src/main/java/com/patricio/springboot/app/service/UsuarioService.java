@@ -47,9 +47,6 @@ public class UsuarioService {
         }
     }
 
-    // =========================
-    // LISTAR TODOS
-    // =========================
     @Transactional(readOnly = true)
     @Cacheable(value = "usuariosList", key = "T(org.springframework.security.core.context.SecurityContextHolder).getContext().getAuthentication().getName()")// Cacheamos el resultado para mejorar velocidad
     public List<UsuarioDTO> listarUsuarios() {
@@ -101,52 +98,17 @@ public class UsuarioService {
             }
         }
 
-        // 3. Limpieza y validación de Email con Lógica de Reactivación
+        // 3. Validación de Email Único (ACTIVO o INACTIVO)
+        // Eliminamos la lógica de "restaurar". Si existe, el Admin debe gestionarlo manualmente.
         String emailLimpio = dto.getEmail().trim().toLowerCase();
-        Optional<Usuario> usuarioExistente = usuarioRepository.findByEmail(emailLimpio);
+        validarEmail(emailLimpio); // Usamos tu método de validación
 
-        if (usuarioExistente.isPresent()) {
-            Usuario u = usuarioExistente.get();
-
-            // Si ya está activo, lanzamos el error normal
-            if (u.isActivo()) {
-                throw new RuntimeException("El email " + emailLimpio + " ya está registrado.");
-            }
-
-            // --- LÓGICA DE REACTIVACIÓN AUTOMÁTICA ---
-            // Si llegamos aquí es porque el usuario existe pero está inactivo.
-            // Actualizamos sus datos con los del DTO (nombre, dni, tel, domicilio, etc.)
-            UsuarioMapper.updateEntity(u, dto);
-
-            // Actualizamos contraseña, estado y quién lo reactiva
-            u.setContrasenia(passwordEncoder.encode(password));
-            u.setActivo(true);
-            u.setCreador(usuarioLogueado);
-
-            // Importante: No cambiamos la instancia (new), solo guardamos la que ya existía
-            try {
-                Usuario reactivado = usuarioRepository.save(u);
-                return UsuarioMapper.toDTO(reactivado);
-            } catch (Exception e) {
-                throw new RuntimeException("Error al reactivar la cuenta existente.");
-            }
+        if (usuarioRepository.findByEmail(emailLimpio).isPresent()) {
+            throw new RuntimeException("El email " + emailLimpio + " ya pertenece a un usuario. Búscalo en la lista para editarlo o reactivarlo.");
         }
 
         // 4. Instanciación según Herencia (Para nuevos registros)
-        Usuario usuario;
-        if (rolNuevo.contains("ADMIN")) {
-            usuario = new Administrador();
-        } else if (rolNuevo.contains("ENCARGADOTORNEO")) {
-            usuario = new EncargadoTorneo();
-        } else if (rolNuevo.contains("ENCARGADOEQUIPO")) {
-            usuario = new EncargadoEquipo();
-        } else if (rolNuevo.contains("ARBITRO")) {
-            usuario = new Arbitro();
-        } else if (rolNuevo.contains("VEEDOR")) {
-            usuario = new Veedor();
-        } else {
-            usuario = new Usuario();
-        }
+        Usuario usuario = crearInstanciaSegunRol(rolNuevo);
 
         // 5. ¡USO DEL MAPPER!
         UsuarioMapper.updateEntity(usuario, dto);
@@ -154,17 +116,26 @@ public class UsuarioService {
         // 6. Seteos manuales de seguridad y relación
         usuario.setEmail(emailLimpio);
         usuario.setContrasenia(passwordEncoder.encode(password));
-        usuario.setActivo(true);
+        usuario.setActivo(true); // Siempre nace activo
         usuario.setCreador(usuarioLogueado);
 
-        // 7. Persistencia de nuevo usuario
+        // 7. Persistencia
         try {
             Usuario guardado = usuarioRepository.save(usuario);
             return UsuarioMapper.toDTO(guardado);
         } catch (Exception e) {
-            System.err.println("ERROR REAL AL GUARDAR: " + e.getMessage());
-            throw new RuntimeException("Error en base de datos al persistir el usuario.");
+            throw new RuntimeException("Error al guardar el usuario en la base de datos.");
         }
+    }
+
+
+    private Usuario crearInstanciaSegunRol(String rol) {
+        if (rol.contains("ADMIN")) return new Administrador();
+        if (rol.contains("ENCARGADOTORNEO")) return new EncargadoTorneo();
+        if (rol.contains("ENCARGADOEQUIPO")) return new EncargadoEquipo();
+        if (rol.contains("ARBITRO")) return new Arbitro();
+        if (rol.contains("VEEDOR")) return new Veedor();
+        return new Usuario();
     }
 
 
@@ -203,13 +174,12 @@ public class UsuarioService {
         usuario.setDomicilio(dto.getDomicilio());
         usuario.setDni(dto.getDni());
         usuario.setRol(dto.getRol());
+        usuario.setActivo(dto.getActivo());
 
         return UsuarioMapper.toDTO(usuarioRepository.save(usuario));
     }
 
-    // =========================
-    // BAJA LÓGICA
-    // =========================
+
     @Transactional
     @CacheEvict(value = "usuariosList", allEntries = true)
     public void desactivarUsuario(Long id) {

@@ -47,6 +47,7 @@ public class Equipo {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creador_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Usuario creador;
 
     public void addJugador(Jugador jugador) {

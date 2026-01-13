@@ -182,6 +182,7 @@ public class EquipoService {
         System.out.println("EQUIPO GUARDADO CON ÉXITO - ID: " + guardado.getId() + " - CREADOR: " + guardado.getCreador().getEmail());
         return EquipoMapper.toDTO(guardado);
     }
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
@@ -455,12 +456,6 @@ public class EquipoService {
         return EquipoMapper.toDTO(actualizado);
     }
 
-    @Cacheable(value = "misEquipos", key = "#email")
-    public List<EquipoDTO> listarEquiposDelUsuario(String email) {
-        return equipoRepository.findByCreadorEmail(email)
-                .stream()
-                .map(EquipoMapper::toDTO)
-                .toList();
-    }
+
 
 }
