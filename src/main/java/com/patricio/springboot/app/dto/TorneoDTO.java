@@ -22,4 +22,18 @@ public class TorneoDTO {
     private Integer puntosEmpate;
     private Long creadorId;
     private String creadorEmail;
+
+    private String colorPrimario;// Fondo oscuro por defecto
+
+    private String colorSecundario; // Gris azulado metálico
+
+    private String colorTextoPrimario; // Blanco humo
+
+    private String colorTextoSecundario; // Gris plata
+    private String fotoUrl;
+    private String genero;
+    private String redSocial;
+    private String encargadoTelefono;
+// Getters y Setters...
+
 }

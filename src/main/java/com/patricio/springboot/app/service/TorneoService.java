@@ -185,6 +185,17 @@ public class TorneoService {
             torneo.setTipo(dto.getTipo());
         }
 
+        // === AGREGAR ESTO PARA PROCESAR LOS COLORES ===
+        torneo.setColorPrimario(dto.getColorPrimario());
+        torneo.setColorSecundario(dto.getColorSecundario());
+        torneo.setColorTextoPrimario(dto.getColorTextoPrimario());
+        torneo.setColorTextoSecundario(dto.getColorTextoSecundario());
+// ==============================================
+        // === AGREGAR ESTO ===
+        torneo.setFotoUrl(dto.getFotoUrl());
+        torneo.setGenero(dto.getGenero());
+        torneo.setRedSocial(dto.getRedSocial());
+
         boolean esAdmin = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 

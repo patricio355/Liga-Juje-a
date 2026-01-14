@@ -22,6 +22,9 @@ public class TorneoMapper {
         dto.setEncargadoEmail(
                 torneo.getEncargado() != null ? torneo.getEncargado().getEmail() : null
         );
+        if (torneo.getEncargado() != null) {
+            dto.setEncargadoTelefono(torneo.getEncargado().getTelefono());
+        }
         dto.setEstado(torneo.getEstado());
         dto.setFechaCreacion(torneo.getFechaCreacion());
         dto.setTipo(torneo.getTipo());
@@ -30,6 +33,18 @@ public class TorneoMapper {
         dto.setCreadorId(torneo.getCreador().getId());
         dto.setPuntosEmpate(torneo.getPuntosEmpate());
         dto.setPuntosGanador(torneo.getPuntosGanador());
+
+        dto.setFotoUrl(torneo.getFotoUrl());
+        dto.setGenero(torneo.getGenero());
+        dto.setRedSocial(torneo.getRedSocial());
+
+        // --- NUEVOS ATRIBUTOS DE COLOR ---
+        dto.setColorPrimario(torneo.getColorPrimario());
+        dto.setColorSecundario(torneo.getColorSecundario());
+        dto.setColorTextoPrimario(torneo.getColorTextoPrimario());
+        dto.setColorTextoSecundario(torneo.getColorTextoSecundario());
+        // --------------------------------
+
         if (torneo.getZonas() != null) {
             dto.setZonas(
                     torneo.getZonas().stream()
@@ -48,7 +63,7 @@ public class TorneoMapper {
                                                 edto.setId(e.getId());
                                                 edto.setNombre(e.getNombre());
                                                 edto.setEscudo(e.getEscudo());
-                                                edto.setEquipoZonaId(ez.getId()); //
+                                                edto.setEquipoZonaId(ez.getId());
                                                 return edto;
                                             })
                                             .collect(Collectors.toList())
@@ -57,12 +72,10 @@ public class TorneoMapper {
                                     zd.setEquipos(new ArrayList<>());
                                 }
 
-                                // 2. IMPORTANTE: MAPEAMOS LOS PARTIDOS (Para habilitar el bloqueo en el Front)
-                                // Si esta lista tiene elementos, el Front ocultará los botones de edición
+                                // 2. MAPEAMOS LOS PARTIDOS
                                 if (z.getPartidos() != null) {
                                     zd.setPartidos(z.getPartidos().stream()
                                             .map(p -> {
-                                                // Solo enviamos IDs o datos mínimos para validar existencia
                                                 PartidoDTO pdto = new PartidoDTO();
                                                 pdto.setId(p.getId());
                                                 return pdto;
@@ -91,6 +104,17 @@ public class TorneoMapper {
         t.setTipo(dto.getTipo());
         t.setPuntosGanador(dto.getPuntosGanador());
         t.setPuntosEmpate(dto.getPuntosEmpate());
+
+        // --- NUEVOS ATRIBUTOS DE COLOR ---
+        t.setColorPrimario(dto.getColorPrimario());
+        t.setColorSecundario(dto.getColorSecundario());
+        t.setColorTextoPrimario(dto.getColorTextoPrimario());
+        t.setColorTextoSecundario(dto.getColorTextoSecundario());
+        // --------------------------------
+        t.setFotoUrl(dto.getFotoUrl());
+        t.setGenero(dto.getGenero());
+        t.setRedSocial(dto.getRedSocial());
+
 
         return t;
     }
