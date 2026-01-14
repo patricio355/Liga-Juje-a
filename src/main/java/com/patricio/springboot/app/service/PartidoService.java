@@ -5,6 +5,7 @@ import com.patricio.springboot.app.dto.PartidoCreateDTO;
 import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.PartidoMapper;
 import com.patricio.springboot.app.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -32,78 +33,128 @@ public class PartidoService {
     private final ProgramacionFechaRepository programacionRepo;
     private final UsuarioRepository usuarioRepository;
     private final ProgramacionFechaService programacionService;
-
+    private final EtapaTorneoRepository etapaTorneoRepository;
     @Transactional
     @Caching(evict = {
-            // Borra la memoria de la lista de partidos por zona (la cajita de la derecha)
             @CacheEvict(value = "partidosPorZona", allEntries = true),
-            // Borra la memoria del fixture general (la pantalla grande)
             @CacheEvict(value = "torneoDetalle", allEntries = true),
-            // Limpia el dashboard general
-            @CacheEvict(value = "dashboardTorneos", allEntries = true)
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "faseFinalData", allEntries = true)
     })
     public Partido crearPartido(PartidoCreateDTO dto) {
 
-        // 1. VALIDAR EQUIPOS EN LA ZONA
-        if (equipoZonaRepository.findByEquipoIdAndZonaId(dto.getEquipoLocalId(), dto.getZonaId()) == null) {
-            throw new RuntimeException("El equipo local NO está inscripto en la zona.");
+        // 1. VALIDACIÓN FLEXIBLE DE INSCRIPCIÓN
+        // Solo validamos si es fase de grupos (etapaId == null) Y si los equipos están presentes
+        if (dto.getEtapaId() == null && dto.getEquipoLocalId() != null && dto.getEquipoVisitanteId() != null) {
+            if (equipoZonaRepository.findByEquipoIdAndZonaId(dto.getEquipoLocalId(), dto.getZonaId()) == null) {
+                throw new RuntimeException("El equipo local NO está inscripto en la zona.");
+            }
+            if (equipoZonaRepository.findByEquipoIdAndZonaId(dto.getEquipoVisitanteId(), dto.getZonaId()) == null) {
+                throw new RuntimeException("El equipo visitante NO está inscripto en la zona.");
+            }
         }
 
-        if (equipoZonaRepository.findByEquipoIdAndZonaId(dto.getEquipoVisitanteId(), dto.getZonaId()) == null) {
-            throw new RuntimeException("El equipo visitante NO está inscripto en la zona.");
-        }
-
-        // 2. CONSTRUIR ENTIDAD PARTIDO
         Partido partido = new Partido();
 
-        partido.setEquipoLocal(
-                equipoRepository.findById(dto.getEquipoLocalId())
-                        .orElseThrow(() -> new RuntimeException("Equipo local no encontrado"))
-        );
-
-        partido.setEquipoVisitante(
-                equipoRepository.findById(dto.getEquipoVisitanteId())
-                        .orElseThrow(() -> new RuntimeException("Equipo visitante no encontrado"))
-        );
-
-        Cancha cancha = canchaRepository.findById(dto.getCanchaId())
-                .orElseThrow(() -> new RuntimeException("Cancha no encontrada"));
-        partido.setCancha(cancha);
-
-        Zona zona = zonaRepository.findById(dto.getZonaId())
-                .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
-        partido.setZona(zona);
-
-        // Parseo de los nuevos campos String del DTO
-        if (dto.getFecha() != null) {
-            partido.setFecha(java.time.LocalDate.parse(dto.getFecha()));
+        // 2. BUSQUEDA OPCIONAL DE EQUIPOS
+        if (dto.getEquipoLocalId() != null) {
+            partido.setEquipoLocal(equipoRepository.findById(dto.getEquipoLocalId())
+                    .orElseThrow(() -> new RuntimeException("Equipo local no encontrado")));
         }
 
-        if (dto.getHora() != null) {
+        if (dto.getEquipoVisitanteId() != null) {
+            partido.setEquipoVisitante(equipoRepository.findById(dto.getEquipoVisitanteId())
+                    .orElseThrow(() -> new RuntimeException("Equipo visitante no encontrado")));
+        }
+
+        // 3. BUSQUEDA OPCIONAL DE CANCHA
+        if (dto.getCanchaId() != null) {
+            Cancha cancha = canchaRepository.findById(dto.getCanchaId())
+                    .orElseThrow(() -> new RuntimeException("Cancha no encontrada"));
+            partido.setCancha(cancha);
+        }
+
+        // --- MANEJO DE ZONA ---
+        Zona zona = null;
+        if (dto.getZonaId() != null && dto.getZonaId() > 0) {
+            zona = zonaRepository.findById(dto.getZonaId())
+                    .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
+            partido.setZona(zona);
+        }
+
+        // --- MANEJO DE ETAPA (Obligatorio para fase final) ---
+        if (dto.getEtapaId() != null) {
+            EtapaTorneo etapa = etapaTorneoRepository.findById(dto.getEtapaId())
+                    .orElseThrow(() -> new RuntimeException("Etapa no encontrada"));
+            partido.setEtapa(etapa);
+            // Seteamos el orden para que el Cuadro sepa dónde ubicarlo
+            partido.setOrden(dto.getOrden());
+        }
+
+        // Mapeo de Fecha, Hora y resto de campos
+        if (dto.getFecha() != null && !dto.getFecha().isEmpty()) {
+            partido.setFecha(java.time.LocalDate.parse(dto.getFecha()));
+        }
+        if (dto.getHora() != null && !dto.getHora().isEmpty()) {
             partido.setHora(java.time.LocalTime.parse(dto.getHora()));
         }
 
         partido.setVeedor(dto.getVeedor());
         partido.setEstado("PENDIENTE");
-        partido.setNumeroFecha(dto.getNumeroFecha());
+        partido.setNumeroFecha(dto.getNumeroFecha() != null ? dto.getNumeroFecha() : 1);
 
-        // Guardar Partido
         Partido partidoGuardado = partidoRepository.save(partido);
 
-        // 3. CREAR REGISTRO EN PROGRAMACION_FECHA
-        // Esto asegura que el partido aparezca en el calendario de gestión y público
-        ProgramacionFecha pf = new ProgramacionFecha();
-        pf.setZona(zona);
-        pf.setPartido(partidoGuardado);
-        pf.setNumeroFecha(dto.getNumeroFecha());
-        pf.setFecha(partidoGuardado.getFecha());
-        pf.setHora(partidoGuardado.getHora());
-        pf.setCancha(cancha);
-        pf.setEstado("PROGRAMADO"); // Estado inicial para el calendario
-
-        programacionRepo.save(pf);
+        // 4. PROGRAMACIÓN (Calendario)
+        // Solo creamos programación si tenemos fecha, hora y cancha
+        if (partidoGuardado.getFecha() != null && partidoGuardado.getCancha() != null) {
+            ProgramacionFecha pf = new ProgramacionFecha();
+            pf.setZona(zona);
+            pf.setPartido(partidoGuardado);
+            pf.setNumeroFecha(partidoGuardado.getNumeroFecha());
+            pf.setFecha(partidoGuardado.getFecha());
+            pf.setHora(partidoGuardado.getHora());
+            pf.setCancha(partidoGuardado.getCancha());
+            pf.setEstado("PROGRAMADO");
+            programacionRepo.save(pf);
+        }
 
         return partidoGuardado;
+    }
+
+
+    @Transactional
+    public Partido cerrarPartidoFaseFinal(Long partidoId, Integer golesLocal, Integer golesVisitante) {
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow(() -> new EntityNotFoundException("Partido no encontrado"));
+
+        // 1. Actualizar resultado
+        partido.setGolesLocal(golesLocal);
+        partido.setGolesVisitante(golesVisitante);
+        partido.setEstado("FINALIZADO");
+
+        // 2. Determinar Ganador
+        if (golesLocal > golesVisitante) {
+            partido.setGanador(partido.getEquipoLocal());
+        } else if (golesVisitante > golesLocal) {
+            partido.setGanador(partido.getEquipoVisitante());
+        } else {
+            throw new IllegalStateException("En fase final debe haber un ganador.");
+        }
+
+        // 3. EVITAR EL ERROR DE LA ZONA (Null Safe)
+        // En lugar de hacer: partido.getZona().getTorneo()
+        // Usa una lógica que verifique si existe la zona o usa la etapa
+        if (partido.getZona() != null) {
+            // Lógica para liga/grupos
+            System.out.println("Torneo de zona: " + partido.getZona().getTorneo().getNombre());
+        } else if (partido.getEtapa() != null) {
+            // Lógica para fase final
+            System.out.println("Torneo de etapa: " + partido.getEtapa().getTorneo().getNombre());
+        }
+
+        return partidoRepository.save(partido);
+
     }
 
 

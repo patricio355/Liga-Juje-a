@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -44,6 +45,7 @@ public class Partido {
 
     @ManyToOne
     @JoinColumn(name = "etapa_id")
+    @JsonBackReference
     private EtapaTorneo etapa;  // importantísimo
 
     @ManyToOne
@@ -59,4 +61,5 @@ public class Partido {
 
     private LocalTime hora;
     private Integer numeroFecha;
+    private Integer orden;
 }

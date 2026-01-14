@@ -1,6 +1,7 @@
 package com.patricio.springboot.app.service;
 
 import com.patricio.springboot.app.dto.EquipoZonaDTO;
+import com.patricio.springboot.app.dto.EtapaFaseFinalDTO;
 import com.patricio.springboot.app.dto.TorneoDTO;
 import com.patricio.springboot.app.dto.ZonaDTO;
 import com.patricio.springboot.app.entity.*;
@@ -17,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.patricio.springboot.app.mapper.TorneoMapper.toDTO;
 
@@ -31,8 +34,9 @@ public class TorneoService {
     private EquipoZonaService equipoZonaService;
     private PartidoService partidoService;
     private ProgramacionFechaService programacionService;
+    private EtapaTorneoRepository etapaTorneoRepository;
 
-    public TorneoService(TorneoRepository torneoRepository,ProgramacionFechaService programacionFechaService, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository, EquipoZonaService equipoZonaService, PartidoService partidoService, EquipoService equipoService) {
+    public TorneoService(TorneoRepository torneoRepository, EtapaTorneoRepository etapaTorneoRepository, ProgramacionFechaService programacionFechaService, ZonaRepository zonaRepository, EquipoZonaRepository equipoZonaRepository, UsuarioRepository usuarioRepository, EquipoZonaService equipoZonaService, PartidoService partidoService, EquipoService equipoService) {
         this.torneoRepository = torneoRepository;
         this.zonaRepository = zonaRepository;
         this.equipoZonaRepository = equipoZonaRepository;
@@ -41,6 +45,7 @@ public class TorneoService {
         this.partidoService = partidoService;
         this.equipoService = equipoService;
         this.programacionService = programacionService;
+        this.etapaTorneoRepository = etapaTorneoRepository;
     }
 
     @Caching(evict = {
@@ -212,7 +217,6 @@ public class TorneoService {
     }
 
 
-
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneosActivos", allEntries = true),
@@ -344,7 +348,6 @@ public class TorneoService {
     }
 
 
-
     @Cacheable(value = "dashboardTorneos", key = "#email")
     public List<TorneoDTO> listarTorneosDelEncargado(String email) {
         return torneoRepository.findByEncargadoEmailWithZonas(email)
@@ -408,5 +411,117 @@ public class TorneoService {
         }
 
         return TorneoMapper.toDTO(torneo);
+    }
+
+    @Transactional
+    public EtapaTorneo crearEtapa(Long torneoId, String nombre, String tipo, Integer orden) {
+        // Validar que los parámetros no vengan nulos desde el DTO
+        if (nombre == null || nombre.isEmpty())
+            throw new IllegalArgumentException("El nombre de la etapa es obligatorio");
+        if (orden == null) throw new IllegalArgumentException("El orden de la etapa es obligatorio");
+
+        Torneo torneo = torneoRepository.findById(torneoId)
+                .orElseThrow(() -> new RuntimeException("No se encontró el torneo con ID: " + torneoId));
+
+        // Validar si ya existe una etapa con ese nombre O con ese orden para evitar conflictos
+        Optional<EtapaTorneo> etapaExistente = etapaTorneoRepository.findByTorneoIdAndNombre(torneoId, nombre);
+        if (etapaExistente.isPresent()) {
+            // En lugar de retornar la existente, podrías lanzar error si quieres avisar al admin
+            throw new RuntimeException("La etapa '" + nombre + "' ya existe en este torneo.");
+        }
+
+        EtapaTorneo nuevaEtapa = new EtapaTorneo();
+        nuevaEtapa.setNombre(nombre);
+        nuevaEtapa.setTipo(tipo);
+        nuevaEtapa.setOrden(orden);
+        nuevaEtapa.setTorneo(torneo);
+
+        try {
+            return etapaTorneoRepository.save(nuevaEtapa);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al guardar en base de datos: " + e.getMessage());
+        }
+    }
+
+    // En TorneoService.java
+    @Transactional(readOnly = true)
+    public List<EtapaTorneo> obtenerCuadroFaseFinal(Long torneoId) {
+        // 1. Buscamos las etapas ordenadas (1: Final, 2: Semis, etc.)
+        List<EtapaTorneo> etapas = etapaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneoId);
+
+        // 2. Forzamos la carga de partidos para cada etapa (o usamos un DTO)
+        // Esto evita el problema de que el Front reciba la lista vacía
+        etapas.forEach(etapa -> {
+            etapa.getPartidos().size(); // Fuerza la carga de la colección
+        });
+
+        return etapas;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EtapaFaseFinalDTO> obtenerEstructuraCuadro(Long torneoId) {
+        // 1. Buscamos las etapas ordenadas por su jerarquía (Final, Semis, etc.)
+        List<EtapaTorneo> etapas = etapaTorneoRepository.findByTorneoIdOrderByOrdenAsc(torneoId);
+
+        // 2. Mapeamos a DTO recorriendo cada etapa y sus partidos
+        return etapas.stream().map(etapa -> {
+            EtapaFaseFinalDTO dto = new EtapaFaseFinalDTO();
+            dto.setId(etapa.getId());
+            dto.setNombre(etapa.getNombre());
+            dto.setOrden(etapa.getOrden());
+
+            // Mapeamos los partidos de esta etapa de forma segura
+            List<EtapaFaseFinalDTO.PartidoResumenDTO> partidosDTO = etapa.getPartidos().stream().map(p -> {
+                EtapaFaseFinalDTO.PartidoResumenDTO pDto = new EtapaFaseFinalDTO.PartidoResumenDTO();
+                pDto.setId(p.getId());
+
+                // --- MANEJO SEGURO DE EQUIPO LOCAL ---
+                if (p.getEquipoLocal() != null) {
+                    pDto.setEquipoLocal(p.getEquipoLocal().getNombre());
+                    pDto.setEquipoLocalEscudo(p.getEquipoLocal().getEscudo());
+                    pDto.setEquipoLocal(p.getEquipoLocal().getNombre());
+                } else {
+                    pDto.setEquipoLocal("POR DEFINIR");
+                    pDto.setEquipoLocalEscudo(null);
+                }
+
+                // --- MANEJO SEGURO DE EQUIPO VISITANTE ---
+                if (p.getEquipoVisitante() != null) {
+                    pDto.setEquipoVisitante(p.getEquipoVisitante().getNombre());
+                    pDto.setEquipoVisitanteEscudo(p.getEquipoVisitante().getEscudo());
+                    pDto.setEquipoVisitante(p.getEquipoVisitante().getNombre());
+                } else {
+                    pDto.setEquipoVisitante("POR DEFINIR");
+                    pDto.setEquipoVisitanteEscudo(null);
+                }
+
+                // --- GOLES Y RESULTADOS ---
+                pDto.setGolesLocal(p.getGolesLocal());
+                pDto.setGolesVisitante(p.getGolesVisitante());
+
+
+                // --- FECHA Y HORA (Null-Safe) ---
+                pDto.setFecha(p.getFecha() != null ? p.getFecha().toString() : null);
+                pDto.setHora(p.getHora() != null ? p.getHora().toString() : null);
+
+                // --- UBICACIÓN Y ÁRBITRO ---
+                if (p.getCancha() != null) {
+                    pDto.setCancha(p.getCancha().getNombre());
+                } else {
+                    pDto.setCancha("SIN ASIGNAR");
+                }
+
+                pDto.setArbitro(p.getVeedor()); // O el campo que uses para el árbitro
+                pDto.setEstado(p.getEstado());
+
+                // IMPORTANTE: El orden determina la posición en el Cuadro Visual
+                pDto.setOrden(p.getOrden());
+
+                return pDto;
+            }).collect(Collectors.toList());
+
+            dto.setPartidos(partidosDTO);
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

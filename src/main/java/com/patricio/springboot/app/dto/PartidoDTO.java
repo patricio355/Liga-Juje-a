@@ -46,4 +46,5 @@ public class PartidoDTO {
 
     private Integer numeroFecha;
     private String estado;
+    private Integer orden;
 }

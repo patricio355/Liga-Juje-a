@@ -1,5 +1,7 @@
 package com.patricio.springboot.app.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,11 +27,13 @@ public class EtapaTorneo {
 
     @ManyToOne
     @JoinColumn(name = "torneo_id")
+    @JsonIgnore
     private Torneo torneo;
 
 
     private String tipo;  // GRUPOS, ELIMINACION, FINAL, ETC.
 
-    @OneToMany(mappedBy = "etapa", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "etapa", fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<Partido> partidos;
 }

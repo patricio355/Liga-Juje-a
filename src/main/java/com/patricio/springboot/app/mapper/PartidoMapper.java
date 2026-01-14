@@ -14,20 +14,24 @@ public class PartidoMapper {
 
         dto.setId(p.getId());
 
-        dto.setEquipoLocalEscudo(p.getEquipoLocal().getEscudo());
-        dto.setEquipoVisitanteEscudo(p.getEquipoVisitante().getEscudo());
-
-
-        // Equipo local
+        // --- MANEJO SEGURO EQUIPO LOCAL ---
         if (p.getEquipoLocal() != null) {
             dto.setEquipoLocalId(p.getEquipoLocal().getId());
             dto.setEquipoLocalNombre(p.getEquipoLocal().getNombre());
+            dto.setEquipoLocalEscudo(p.getEquipoLocal().getEscudo()); // Movido aquí
+        } else {
+            dto.setEquipoLocalNombre("POR DEFINIR");
+            dto.setEquipoLocalEscudo(null);
         }
 
-        // Equipo visitante
+        // --- MANEJO SEGURO EQUIPO VISITANTE ---
         if (p.getEquipoVisitante() != null) {
             dto.setEquipoVisitanteId(p.getEquipoVisitante().getId());
             dto.setEquipoVisitanteNombre(p.getEquipoVisitante().getNombre());
+            dto.setEquipoVisitanteEscudo(p.getEquipoVisitante().getEscudo()); // Movido aquí
+        } else {
+            dto.setEquipoVisitanteNombre("POR DEFINIR");
+            dto.setEquipoVisitanteEscudo(null);
         }
 
         // Ganador
@@ -64,12 +68,12 @@ public class PartidoMapper {
 
         // Fecha (LocalDate)
         if (p.getFecha() != null) {
-            dto.setFecha(p.getFecha().toString()); // yyyy-MM-dd
+            dto.setFecha(p.getFecha().toString());
         }
 
-        // FechaHora (LocalDateTime)
+        // Hora (LocalTime)
         if (p.getHora() != null) {
-            dto.setHora(p.getHora().toString()); // ISO
+            dto.setHora(p.getHora().toString());
         }
 
         dto.setGolesLocal(p.getGolesLocal());
@@ -77,6 +81,8 @@ public class PartidoMapper {
 
         dto.setNumeroFecha(p.getNumeroFecha());
         dto.setEstado(p.getEstado());
+
+        dto.setOrden(p.getOrden());
 
         return dto;
     }

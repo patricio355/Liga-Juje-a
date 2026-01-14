@@ -7,6 +7,7 @@ import com.patricio.springboot.app.mapper.PartidoMapper;
 import com.patricio.springboot.app.repository.SolicitudCierrePartidoRepository;
 import com.patricio.springboot.app.repository.UsuarioRepository;
 import com.patricio.springboot.app.service.PartidoService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -134,5 +135,28 @@ public class PartidoController {
     public ResponseEntity<List<Integer>> getFechas(@PathVariable Long zonaId) {
         List<Integer> fechas = partidoService.obtenerFechasConPartidos(zonaId);
         return ResponseEntity.ok(fechas);
+    }
+
+    @PostMapping("/{id}/cerrar-fase-final")
+    public ResponseEntity<?> cerrarPartidoFaseFinal(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> goles) {
+        try {
+            Integer golesLocal = goles.get("golesLocal");
+            Integer golesVisitante = goles.get("golesVisitante");
+
+            if (golesLocal == null || golesVisitante == null) {
+                return ResponseEntity.badRequest().body("Los goles local y visitante son obligatorios");
+            }
+
+            Partido partidoActualizado = partidoService.cerrarPartidoFaseFinal(id, golesLocal, golesVisitante);
+            return ResponseEntity.ok(partidoActualizado);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el cierre");
+        }
     }
 }
