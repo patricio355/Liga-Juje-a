@@ -1,9 +1,6 @@
 package com.patricio.springboot.app.controller;
 
-import com.patricio.springboot.app.dto.EquipoZonaDTO;
-import com.patricio.springboot.app.dto.EtapaFaseFinalDTO;
-import com.patricio.springboot.app.dto.TorneoDTO;
-import com.patricio.springboot.app.dto.ZonaDTO;
+import com.patricio.springboot.app.dto.*;
 import com.patricio.springboot.app.entity.EtapaTorneo;
 import com.patricio.springboot.app.repository.EtapaTorneoRepository;
 import com.patricio.springboot.app.service.EquipoService;
@@ -58,7 +55,8 @@ public class TorneoController {
     }
 
     @GetMapping("/activos")
-    public ResponseEntity<List<TorneoDTO>> listarActivos() {
+    public ResponseEntity<List<TorneoResumenDTO>> listarActivos() {
+        // Ahora devuelve la lista simplificada, mucho más rápida y sin errores de profundidad
         return ResponseEntity.ok(torneoService.listarActivos());
     }
 

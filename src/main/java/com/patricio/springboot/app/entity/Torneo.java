@@ -3,6 +3,7 @@ package com.patricio.springboot.app.entity;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +23,7 @@ public class Torneo {
     private String division;
 
     @OneToMany(mappedBy = "torneo", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Zona> zonas;
 
     @ManyToOne
