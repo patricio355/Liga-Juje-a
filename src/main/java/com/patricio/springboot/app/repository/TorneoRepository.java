@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,27 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
             "WHERE t.estado = :estado")
     List<Torneo> findByEstadoConZonas(@Param("estado") String estado);
 
+    // 1. Busca cuando SÍ hay una división específica (Ej: "Torneo Apertura" + Div "A")
+    boolean existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCase(String nombre, String division, String estado);
+
+    // 2. Busca cuando NO hay división (Ej: "Torneo Apertura" + null)
+    boolean existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCase(String nombre, String estado);
+
+    // 1. Para Modificar: Mismo Nombre + Misma División + Activo + DISTINTO ID
+    boolean existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndIdNot(
+            String nombre,
+            String division,
+            String estado,
+            Long id
+    );
+
+    // 2. Para Modificar: Mismo Nombre + División NULL + Activo + DISTINTO ID
+    boolean existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndIdNot(
+            String nombre,
+            String estado,
+            Long id
+    );
+
     List<Torneo> findByEstadoAndTipo(String estado, String tipo);
 
     List<Torneo> findByEstadoAndTipoAndIdNotIn(
@@ -43,6 +65,5 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
 
     boolean existsBySlug(String slugFinal);
 
-    boolean existsByNombreIgnoreCaseAndEstadoIgnoreCase(String nombre, String estado);
-    boolean existsByNombreIgnoreCaseAndEstadoIgnoreCaseAndIdNot(String nombre, String estado, Long id);
+    List<Torneo> findByEstadoIgnoreCase(String estado);
 }

@@ -1,4 +1,5 @@
 package com.patricio.springboot.app.entity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,5 +28,6 @@ public class Zona {
 
     @ManyToOne
     @JoinColumn(name = "torneo_id")
+    @JsonBackReference
     private Torneo torneo;
 }

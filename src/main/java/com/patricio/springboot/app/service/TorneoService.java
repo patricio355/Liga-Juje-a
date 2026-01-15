@@ -1,9 +1,6 @@
 package com.patricio.springboot.app.service;
 
-import com.patricio.springboot.app.dto.EquipoZonaDTO;
-import com.patricio.springboot.app.dto.EtapaFaseFinalDTO;
-import com.patricio.springboot.app.dto.TorneoDTO;
-import com.patricio.springboot.app.dto.ZonaDTO;
+import com.patricio.springboot.app.dto.*;
 import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.TorneoMapper;
 import com.patricio.springboot.app.repository.*;
@@ -54,9 +51,33 @@ public class TorneoService {
     })
     public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
-        boolean existeActivo = torneoRepository.existsByNombreIgnoreCaseAndEstadoIgnoreCase(dto.getNombre(), "activo");
+        boolean existeActivo;
+
+// Verificamos si el DTO trae una división real (que no sea null ni texto vacío)
+        if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
+            // CASO A: El torneo nuevo TIENE división.
+            // Buscamos si ya existe uno con: Mismo Nombre + Misma División + Activo
+            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCase(
+                    dto.getNombre().trim(),
+                    dto.getDivision().trim(),
+                    "activo"
+            );
+        } else {
+            // CASO B: El torneo nuevo NO TIENE división.
+            // Buscamos si ya existe uno con: Mismo Nombre + División NULL + Activo
+            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCase(
+                    dto.getNombre().trim(),
+                    "activo"
+            );
+        }
+
         if (existeActivo) {
-            throw new RuntimeException("Ya existe un torneo activo con el nombre: " + dto.getNombre());
+            // Personalizamos el mensaje de error para que sea claro
+            String errorMsg = "Ya existe un torneo activo con el nombre '" + dto.getNombre() + "'";
+            if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
+                errorMsg += " en la división " + dto.getDivision();
+            }
+            throw new RuntimeException(errorMsg);
         }
 
         Torneo torneo = TorneoMapper.toEntity(dto);
@@ -147,10 +168,11 @@ public class TorneoService {
 
 
     @Cacheable(value = "torneosActivos")
-    public List<TorneoDTO> listarActivos() {
-        return torneoRepository.findByEstadoConZonas("activo")
+    public List<TorneoResumenDTO> listarActivos() {
+        // Usamos findByEstado (sin cargar zonas) para que sea súper rápido
+        return torneoRepository.findByEstadoIgnoreCase("activo")
                 .stream()
-                .map(TorneoMapper::toDTO)
+                .map(TorneoMapper::toResumenDTO) // <--- Usamos el mapper resumen
                 .toList();
     }
 
@@ -166,15 +188,33 @@ public class TorneoService {
         Torneo torneo = torneoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
-// 2. Validamos duplicados EXCLUYENDO el torneo actual mediante su ID
-        boolean existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndEstadoIgnoreCaseAndIdNot(
-                dto.getNombre(),
-                "activo",
-                id
-        );
+// 2. Validamos duplicados (Nombre + División) EXCLUYENDO el ID actual
+        boolean existeOtroActivo;
+
+        // Verificamos si el DTO trae una división real
+        if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
+            // CASO A: Tiene división. Buscamos duplicado excluyendo este ID
+            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndIdNot(
+                    dto.getNombre().trim(),
+                    dto.getDivision().trim(),
+                    "activo",
+                    id // <--- Importante: Pasamos el ID para excluirlo
+            );
+        } else {
+            // CASO B: No tiene división (es null). Buscamos duplicado excluyendo este ID
+            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndIdNot(
+                    dto.getNombre().trim(),
+                    "activo",
+                    id // <--- Importante
+            );
+        }
 
         if (existeOtroActivo) {
-            throw new RuntimeException("Ya existe otro torneo activo con el nombre: " + dto.getNombre());
+            String errorMsg = "Ya existe otro torneo activo con el nombre '" + dto.getNombre() + "'";
+            if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
+                errorMsg += " en la división " + dto.getDivision();
+            }
+            throw new RuntimeException(errorMsg);
         }
 
 // 3. Si pasa la validación, procedemos a actualizar
@@ -395,32 +435,33 @@ public class TorneoService {
     public TorneoDTO obtenerPorSlug(String slug) {
         Torneo torneo;
 
-        // 1. Verificamos si el 'slug' recibido es en realidad un ID numérico
+        // 1. Busqueda inteligente (Slug o ID)
         if (slug.matches("\\d+")) {
-            // Es un número: Buscamos por ID
             Long id = Long.parseLong(slug);
             torneo = torneoRepository.findByIdOptimized(id)
                     .orElseThrow(() -> new RuntimeException("Torneo no encontrado con ID: " + id));
         } else {
-            // Es texto: Buscamos por la columna Slug
             torneo = torneoRepository.findBySlugOptimized(slug)
-                    .orElseThrow(() -> new RuntimeException("Torneo no encontrado con el nombre: " + slug));
+                    .orElseThrow(() -> new RuntimeException("Torneo no encontrado: " + slug));
         }
 
-        // 2. Lógica de seguridad (se mantiene intacta)
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String emailUsuarioAutenticado = auth.getName();
+        // 2. Lógica de visibilidad (En lugar de seguridad privada)
+        // Solo lanzamos error si el torneo está "inactivo" y el usuario no tiene permisos
+        if ("inactivo".equalsIgnoreCase(torneo.getEstado())) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String email = (auth != null) ? auth.getName() : "";
 
-        boolean esAdminGlobal = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean esAdmin = auth != null && auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean esDuenio = torneo.getEncargado() != null &&
+                    torneo.getEncargado().getEmail().equalsIgnoreCase(email);
 
-        boolean esDuenio = torneo.getEncargado() != null &&
-                torneo.getEncargado().getEmail().equalsIgnoreCase(emailUsuarioAutenticado);
-
-        if (!esAdminGlobal && !esDuenio) {
-            throw new AccessDeniedException("No tienes permiso para ver este torneo.");
+            if (!esAdmin && !esDuenio) {
+                throw new AccessDeniedException("Este torneo aún no es público.");
+            }
         }
 
+        // Al usar TorneoMapper.toDTO(torneo), recordá que este DTO SI debe tener las zonas.
         return TorneoMapper.toDTO(torneo);
     }
 

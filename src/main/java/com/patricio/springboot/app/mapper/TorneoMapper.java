@@ -1,9 +1,6 @@
 package com.patricio.springboot.app.mapper;
 
-import com.patricio.springboot.app.dto.EquipoDTO;
-import com.patricio.springboot.app.dto.PartidoDTO;
-import com.patricio.springboot.app.dto.TorneoDTO;
-import com.patricio.springboot.app.dto.ZonaDTO;
+import com.patricio.springboot.app.dto.*;
 import com.patricio.springboot.app.entity.Equipo;
 import com.patricio.springboot.app.entity.Torneo;
 
@@ -117,5 +114,23 @@ public class TorneoMapper {
 
 
         return t;
+    }
+
+
+    public static TorneoResumenDTO toResumenDTO(Torneo torneo) {
+        if (torneo == null) return null;
+        TorneoResumenDTO dto = new TorneoResumenDTO();
+        dto.setId(torneo.getId());
+        dto.setNombre(torneo.getNombre());
+        dto.setSlug(torneo.getSlug());
+        dto.setDivision(torneo.getDivision());
+        dto.setEstado(torneo.getEstado());
+        dto.setFotoUrl(torneo.getFotoUrl());
+        dto.setGenero(torneo.getGenero());
+        dto.setColorPrimario(torneo.getColorPrimario());
+        dto.setColorSecundario(torneo.getColorSecundario());
+        dto.setColorTextoPrimario(torneo.getColorTextoPrimario());
+        dto.setColorTextoSecundario(torneo.getColorTextoSecundario());
+        return dto;
     }
 }
