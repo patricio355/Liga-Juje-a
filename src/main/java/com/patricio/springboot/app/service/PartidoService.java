@@ -589,7 +589,7 @@ public class PartidoService {
             // Reversa de Puntos y Resultados
             if (golesRival > golesEliminado) { // El rival había ganado
                 rivalZona.setGanados(rivalZona.getGanados() - 1);
-                rivalZona.setPuntos(rivalZona.getPuntos() - 3);
+                rivalZona.setPuntos(rivalZona.getPuntos() - partido.getZona().getTorneo().getPuntosGanador());
             } else if (golesRival == golesEliminado) { // Habían empatado
                 rivalZona.setEmpatados(rivalZona.getEmpatados() - 1);
                 rivalZona.setPuntos(rivalZona.getPuntos() - 1);
