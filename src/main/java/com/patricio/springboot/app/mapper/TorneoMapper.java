@@ -60,6 +60,7 @@ public class TorneoMapper {
                                                 edto.setId(e.getId());
                                                 edto.setNombre(e.getNombre());
                                                 edto.setEscudo(e.getEscudo());
+                                                edto.setEstado(e.isEstado());
                                                 edto.setEquipoZonaId(ez.getId());
                                                 return edto;
                                             })
