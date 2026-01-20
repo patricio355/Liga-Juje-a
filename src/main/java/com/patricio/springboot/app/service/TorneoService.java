@@ -220,7 +220,10 @@ public class TorneoService {
 // 3. Si pasa la validación, procedemos a actualizar
         torneo.setNombre(dto.getNombre());
         torneo.setDivision(dto.getDivision());
-        torneo.setEstado(dto.getEstado());
+
+        if (dto.getEstado() != null && !dto.getEstado().isBlank()){
+            torneo.setEstado(dto.getEstado());
+        }
         if (dto.getTipo() != null) {
             torneo.setTipo(dto.getTipo());
         }

@@ -352,7 +352,13 @@ public class EquipoService {
         equipo.setNombre(dto.getNombre());
         equipo.setLocalidad(dto.getLocalidad());
         equipo.setEscudo(dto.getEscudo());
-        equipo.setEstado(dto.getEstado());
+        // En tu Service de Java antes de guardar:
+        if (dto.getEstado() == null) {
+            // Si viene null, mantenemos el que ya tiene la base de datos
+            equipo.setEstado(equipo.isEstado());
+        } else {
+            equipo.setEstado(dto.getEstado());
+        }
         equipo.setCamisetaSuplente(dto.getCamisetaSuplente());
         equipo.setCamisetaTitular(dto.getCamisetaTitular());
         if (dto.getCanchaId() != null) {
