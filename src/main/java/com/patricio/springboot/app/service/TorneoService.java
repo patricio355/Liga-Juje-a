@@ -251,15 +251,14 @@ public class TorneoService {
 
             if (email == null || email.isBlank()) {
                 torneo.setEncargado(null);
+
             } else {
                 Usuario encargado = usuarioRepository.findByEmail(email)
                         .orElseThrow(() ->
                                 new RuntimeException("No existe usuario con ese email")
                         );
 
-                if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
-                    throw new RuntimeException("El usuario no es encargado de torneo");
-                }
+
 
                 torneo.setEncargado(encargado);
             }
