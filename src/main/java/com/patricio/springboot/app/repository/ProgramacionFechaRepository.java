@@ -98,4 +98,6 @@ public interface ProgramacionFechaRepository
     List<Integer> findDistinctFechasByZonaId(@Param("zonaId") Long zonaId);
 
     void deleteByPartido_Zona_Id(Long idZona);
+
+    void deleteByPartidoId(Long partidoId);
 }

@@ -8,6 +8,7 @@ import java.util.List;
 public class TarjetaProgramacionEquipoDTO {
     private Long equipoId;
     private String equipoNombre;
+    private String escudo;
     private boolean bloqueado;
     private boolean seleccionado;
     private List<OpcionPartidoDTO> opciones;

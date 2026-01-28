@@ -35,7 +35,15 @@ public class PartidoController {
         return ResponseEntity.ok(PartidoMapper.toDTO(partido));
     }
 
-
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+        try {
+            partidoService.eliminarPartidoCompleto(id);
+            return ResponseEntity.ok("Partido y estadísticas eliminados correctamente");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error: " + e.getMessage());
+        }
+    }
 
 
 

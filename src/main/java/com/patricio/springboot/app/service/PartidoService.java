@@ -122,6 +122,77 @@ public class PartidoService {
         return partidoGuardado;
     }
 
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "partidosPorZona", allEntries = true),
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "faseFinalData", allEntries = true),
+            @CacheEvict(value = "programacion", allEntries = true),
+            @CacheEvict(value = "torneos", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true), // Si tenés cacheada la tabla
+            @CacheEvict(value = "opcionesProgramacion", allEntries = true), // ¡ESTE ES CLAVE!
+            @CacheEvict(value = "fixture", allEntries = true),
+
+
+    })
+    public void eliminarPartidoCompleto(Long partidoId) {
+        // 1. Buscar el partido
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
+
+        // 2. REVERTIR TABLA DE POSICIONES (equipo_zona)
+        // Necesitas buscar las entradas de equipo_zona para el local y visitante
+        // Asumiendo que tienes el torneo_id o zona_id en el partido
+        if ("FINALIZADO".equals(partido.getEstado())) {
+            revertirEstadisticasEquipo(partido.getEquipoLocal(), partido.getGolesLocal(), partido.getGolesVisitante(), partido.getZona().getTorneo().getId());
+            revertirEstadisticasEquipo(partido.getEquipoVisitante(), partido.getGolesVisitante(), partido.getGolesLocal(), partido.getZona().getTorneo().getId());
+        }
+        // 3. ELIMINAR REGISTROS ASOCIADOS
+
+
+        programacionRepo.deleteByPartidoId(partidoId);
+
+        // 4. ELIMINACIÓN FÍSICA DEL PARTIDO
+        partido.setGanador(null);
+        partido.setFecha(null);
+        partido.setEstado("PENDIENTE");
+        partido.setHora(null);
+        partido.setVeedor(null);
+        partido.setArbitro(null);
+        partido.setCancha(null);
+        partido.setGolesLocal(null);
+        partido.setGolesVisitante(null);
+        partido.setOrden(null);
+        partido.setEtapa(null);
+
+        partidoRepository.save(partido);
+
+    }
+
+    private void revertirEstadisticasEquipo(Equipo equipo, int golesFavor, int golesContra, Long torneoId) {
+        // Buscamos la fila en la tabla equipo_zona (la que mostraste en image_226752.png)
+        EquipoZona ez = equipoZonaRepository.findByEquipoAndTorneoId(equipo, torneoId);
+
+        if (ez != null) {
+            ez.setPartidosJugados(ez.getPartidosJugados() - 1);
+            ez.setGolesAFavor(ez.getGolesAFavor() - golesFavor);
+            ez.setGolesEnContra(ez.getGolesEnContra() - golesContra);
+
+            if (golesFavor > golesContra) { // Ganó
+                ez.setGanados(ez.getGanados() - 1);
+                ez.setPuntos(ez.getPuntos() - ez.getZona().getTorneo().getPuntosGanador());
+            } else if (golesFavor < golesContra) { // Perdió
+                ez.setPerdidos(ez.getPerdidos() - 1);
+            } else { // Empató
+                ez.setEmpatados(ez.getEmpatados() - 1);
+                ez.setPuntos(ez.getPuntos() - ez.getZona().getTorneo().getPuntosEmpate());
+            }
+            equipoZonaRepository.save(ez);
+        }
+    }
+
+
 
     @Transactional
     public Partido cerrarPartidoFaseFinal(Long partidoId, Integer golesLocal, Integer golesVisitante) {
@@ -181,6 +252,7 @@ public class PartidoService {
                 ))
                 .toList();
     }
+
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "torneoDetalle", allEntries = true), // Limpia todos los detalles

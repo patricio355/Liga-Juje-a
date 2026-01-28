@@ -27,10 +27,7 @@ public class ProgramacionFechaService {
     private final PartidoRepository partidoRepository;
     private final ProgramacionFechaRepository programacionRepository;
 
-    /**
-     * Obtiene los equipos de la zona y sus partidos disponibles (No programados aún).
-     * No usamos caché aquí para que los nombres en ROJO se actualicen siempre.
-     */
+
     public List<TarjetaProgramacionEquipoDTO> obtenerOpciones(Long zonaId, Integer numeroFecha) {
         Zona zona = zonaRepository.findById(zonaId)
                 .orElseThrow(() -> new RuntimeException("Zona no encontrada"));
@@ -60,6 +57,7 @@ public class ProgramacionFechaService {
             dto.setEquipoId(equipo.getId());
             dto.setEquipoNombre(equipo.getNombre());
             dto.setSeleccionado(false);
+            dto.setEscudo(equipo.getEscudo());
 
             List<OpcionPartidoDTO> opciones = partidosZona.stream()
                     .filter(p -> p.getEquipoLocal().getId().equals(equipo.getId())
@@ -84,9 +82,7 @@ public class ProgramacionFechaService {
         return tarjetas;
     }
 
-    /**
-     * ✅ PROGRAMAR PARTIDO: Limpia el caché para que el cambio sea visible.
-     */
+
     @Transactional
     @Caching(evict = {
             // Borra el caché específico de esta fecha para que aparezca en el panel derecho
@@ -106,6 +102,7 @@ public class ProgramacionFechaService {
         pf.setNumeroFecha(fecha);
         pf.setPartido(partidoRepository.getReferenceById(partidoId));
         pf.setEstado("PROGRAMADO");
+        pf.getPartido().setEstado("PROGRAMADO");
 
         programacionRepository.save(pf);
     }
