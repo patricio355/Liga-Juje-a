@@ -63,7 +63,8 @@ public class SecurityConfig {
                         "http://localhost:5173",
                         "https://*.railway.app", // Permite subdominios de Railway
                         "https://jujuyligas.vercel.app",
-                        "https://www.jujuyligas.live"
+                        "https://www.jujuyligas.live",
+                        "https://jujuyligas.live"
                 )
         );
         config.setAllowedMethods(
