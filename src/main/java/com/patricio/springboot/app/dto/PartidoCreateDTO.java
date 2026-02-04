@@ -2,6 +2,9 @@ package com.patricio.springboot.app.dto;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 @Data
 public class PartidoCreateDTO {
 
@@ -17,8 +20,8 @@ public class PartidoCreateDTO {
 
     private Integer numeroFecha; // En fase final puede ser 1 (único partido)
 
-    private String fecha; // Formato YYYY-MM-DD
-    private String hora;  // Formato HH:mm
+    private LocalDate fecha; // Formato YYYY-MM-DD
+    private LocalTime hora;  // Formato HH:mm
 
     private Long arbitroId;
     private String veedor;

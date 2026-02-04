@@ -45,4 +45,6 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
 
     @Query("SELECT p FROM Partido p WHERE p.zona.id = :zonaId AND (p.equipoLocal.id = :equipoId OR p.equipoVisitante.id = :equipoId)")
     List<Partido> findAllByZonaIdAndEquipoId(Long zonaId, Long equipoId);
+
+    boolean existsByEtapaId(Long etapaId);
 }

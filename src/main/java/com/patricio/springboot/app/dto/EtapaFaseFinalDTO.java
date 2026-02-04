@@ -20,6 +20,8 @@ public class EtapaFaseFinalDTO {
         private String equipoVisitanteEscudo;
         private Integer golesLocal;
         private Integer golesVisitante;
+        private Integer golesVisitantePenales;
+        private Integer golesLocalPenales;
         private String fecha;
         private String hora;
         private String estado;

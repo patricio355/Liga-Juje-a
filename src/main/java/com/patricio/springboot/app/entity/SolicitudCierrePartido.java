@@ -21,6 +21,8 @@ public class SolicitudCierrePartido {
 
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesVisitantePenales;
+    private Integer golesLocalPenales;
 
     private String estado;
     // PENDIENTE, APROBADA, RECHAZADA

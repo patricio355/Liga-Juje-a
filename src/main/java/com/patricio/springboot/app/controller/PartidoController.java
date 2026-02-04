@@ -45,7 +45,35 @@ public class PartidoController {
         }
     }
 
+    @DeleteMapping("/faseFinal/{id}")
+    public ResponseEntity<?> eliminarFaseFinal(@PathVariable Long id) {
+        try {
+            // Llamamos al servicio para ejecutar la lógica de eliminación completa
+            partidoService.eliminarPartidoFaseFinal(id);
+            return ResponseEntity.ok(Map.of("message", "Partido y sus datos asociados eliminados correctamente"));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al eliminar el partido: " + e.getMessage());
+        }
+    }
 
+
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody PartidoCreateDTO dto) {
+        try {
+            // El service debe encargarse de buscar el partido y setear los nuevos valores
+            Partido partidoActualizado = partidoService.actualizarPartido(id, dto);
+            return ResponseEntity.ok(PartidoMapper.toDTO(partidoActualizado));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al actualizar el partido: " + e.getMessage());
+        }
+    }
 
 
     // 🔹 FIXTURE POR ZONA
@@ -121,6 +149,8 @@ public class PartidoController {
                         s.getPartido().getEquipoVisitante().getNombre(),
                         s.getGolesLocal(),
                         s.getGolesVisitante(),
+                        s.getGolesLocalPenales(),
+                        s.getGolesVisitantePenales(),
                         s.getSolicitante().getNombre(),
                         s.getEstado()
                 ))
@@ -152,16 +182,26 @@ public class PartidoController {
         try {
             Integer golesLocal = goles.get("golesLocal");
             Integer golesVisitante = goles.get("golesVisitante");
+            // Capturamos los nuevos campos enviados por el frontend
+            Integer golesLocalPenales = goles.get("golesLocalPenales");
+            Integer golesVisitantePenales = goles.get("golesVisitantePenales");
 
             if (golesLocal == null || golesVisitante == null) {
                 return ResponseEntity.badRequest().body("Los goles local y visitante son obligatorios");
             }
 
-            Partido partidoActualizado = partidoService.cerrarPartidoFaseFinal(id, golesLocal, golesVisitante);
+            // Si no vienen penales (ej. no hubo empate), los tratamos como 0 para evitar NullPointerException
+            int penalesL = (golesLocalPenales != null) ? golesLocalPenales : 0;
+            int penalesV = (golesVisitantePenales != null) ? golesVisitantePenales : 0;
+
+            // Actualizamos la llamada al service con los 4 parámetros
+            Partido partidoActualizado = partidoService.cerrarPartidoFaseFinal(id, golesLocal, golesVisitante, penalesL, penalesV);
+
             return ResponseEntity.ok(partidoActualizado);
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (IllegalStateException e) {
+            // Aquí caerá el error si hay empate en penales o si no se enviaron datos de desempate
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el cierre");

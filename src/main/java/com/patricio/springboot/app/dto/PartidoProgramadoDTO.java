@@ -14,6 +14,8 @@ public class PartidoProgramadoDTO {
     private String arbitro;
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesLocalPenales;
+    private Integer golesVisitantePenales;
 
     private String estado; // FINALIZADO / PENDIENTE
 

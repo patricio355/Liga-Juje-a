@@ -37,6 +37,8 @@ public class PartidoDTO {
 
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesLocalPenales;
+    private Integer golesVisitantePenales;
 
     // Otros
     private String veedor;
