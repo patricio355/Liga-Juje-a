@@ -14,6 +14,8 @@ public class SolicitudCierreResponse {
     private String equipoVisitante;
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesLocalPenales;
+    private Integer golesVisitantePenales;
     private String solicitante;
     private String estado;
 }

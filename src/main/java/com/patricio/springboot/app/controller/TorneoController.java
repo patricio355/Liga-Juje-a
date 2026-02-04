@@ -8,6 +8,7 @@ import com.patricio.springboot.app.service.EquipoZonaService;
 import com.patricio.springboot.app.service.TorneoService;
 import com.patricio.springboot.app.service.ZonaService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -90,6 +91,8 @@ public class TorneoController {
         torneoService.eliminarTorneo(id);
         return ResponseEntity.noContent().build();
     }
+
+
 
     // ---------------------------------------------------------
     // AGREGAR ZONA A UN TORNEO
@@ -221,5 +224,19 @@ public class TorneoController {
     public ResponseEntity<List<EtapaFaseFinalDTO>> getCuadroCompleto(@PathVariable Long id) {
         List<EtapaFaseFinalDTO> cuadro = torneoService.obtenerEstructuraCuadro(id);
         return ResponseEntity.ok(cuadro);
+    }
+
+    @DeleteMapping("/etapas/{id}")
+    public ResponseEntity<?> eliminarEtapa(@PathVariable Long id) {
+        try {
+            torneoService.eliminarEtapaSiEstaVacia(id);
+            return ResponseEntity.ok(Map.of("message", "Etapa eliminada con éxito"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
     }
 }

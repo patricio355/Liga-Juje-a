@@ -58,6 +58,8 @@ public class Partido {
 
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesLocalPenales;
+    private Integer golesVisitantePenales;
 
     private LocalTime hora;
     private Integer numeroFecha;

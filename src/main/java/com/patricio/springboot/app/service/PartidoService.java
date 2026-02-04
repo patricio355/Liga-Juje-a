@@ -92,11 +92,11 @@ public class PartidoService {
         }
 
         // Mapeo de Fecha, Hora y resto de campos
-        if (dto.getFecha() != null && !dto.getFecha().isEmpty()) {
-            partido.setFecha(java.time.LocalDate.parse(dto.getFecha()));
+        if (dto.getFecha() != null ) {
+            partido.setFecha((dto.getFecha()));
         }
-        if (dto.getHora() != null && !dto.getHora().isEmpty()) {
-            partido.setHora(java.time.LocalTime.parse(dto.getHora()));
+        if (dto.getHora() != null ) {
+            partido.setHora((dto.getHora()));
         }
 
         partido.setVeedor(dto.getVeedor());
@@ -120,6 +120,62 @@ public class PartidoService {
         }
 
         return partidoGuardado;
+    }
+
+    @Transactional
+    public void eliminarPartidoFaseFinal(Long partidoId) {
+        // 1. Verificar existencia del partido
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow(() -> new EntityNotFoundException("No se encontró el partido con ID: " + partidoId));
+
+        programacionService.eliminarProgramacionPorPartido(partidoId);
+        // 5. Finalmente, eliminar el partido
+        partidoRepository.delete(partido);
+    }
+
+    @Transactional
+    public Partido actualizarPartido(Long id, PartidoCreateDTO dto) {
+        Partido partido = partidoRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Partido no encontrado con ID: " + id));
+
+        // Actualizar Equipos (Buscando las entidades por ID)
+        if (dto.getEquipoLocalId() != null) {
+            Equipo local = equipoRepository.findById(dto.getEquipoLocalId())
+                    .orElseThrow(() -> new EntityNotFoundException("Equipo local no encontrado"));
+            partido.setEquipoLocal(local);
+        } else {
+            partido.setEquipoLocal(null);
+        }
+
+        if (dto.getEquipoVisitanteId() != null) {
+            Equipo visitante = equipoRepository.findById(dto.getEquipoVisitanteId())
+                    .orElseThrow(() -> new EntityNotFoundException("Equipo visitante no encontrado"));
+            partido.setEquipoVisitante(visitante);
+        } else {
+            partido.setEquipoVisitante(null);
+        }
+
+        // Actualizar Cancha
+        if (dto.getCanchaId() != null) {
+            Cancha cancha = canchaRepository.findById(dto.getCanchaId())
+                    .orElseThrow(() -> new EntityNotFoundException("Cancha no encontrada"));
+            partido.setCancha(cancha);
+        } else {
+            partido.setCancha(null);
+        }
+
+        // Actualizar datos básicos
+        partido.setFecha(dto.getFecha());
+        partido.setHora(dto.getHora());
+        partido.setVeedor(dto.getVeedor());
+
+
+        // El orden es importante para el cuadro de fase final
+        if (dto.getOrden() != null) {
+            partido.setOrden(dto.getOrden());
+        }
+
+        return partidoRepository.save(partido);
     }
 
     @Transactional
@@ -195,39 +251,52 @@ public class PartidoService {
 
 
     @Transactional
-    public Partido cerrarPartidoFaseFinal(Long partidoId, Integer golesLocal, Integer golesVisitante) {
+    public Partido cerrarPartidoFaseFinal(Long partidoId, Integer golesLocal, Integer golesVisitante, Integer penalesLocal, Integer penalesVisitante) {
         Partido partido = partidoRepository.findById(partidoId)
                 .orElseThrow(() -> new EntityNotFoundException("Partido no encontrado"));
 
-        // 1. Actualizar resultado
+        // 1. Actualizar resultado reglamentario
         partido.setGolesLocal(golesLocal);
         partido.setGolesVisitante(golesVisitante);
+
+        // 2. Actualizar resultado de penales (asegúrate de tener estos campos en tu entidad Partido)
+        partido.setGolesLocalPenales(penalesLocal != null ? penalesLocal : 0);
+        partido.setGolesVisitantePenales(penalesVisitante != null ? penalesVisitante : 0);
+
         partido.setEstado("FINALIZADO");
 
-        // 2. Determinar Ganador
+        // 3. Determinar Ganador contemplando penales
         if (golesLocal > golesVisitante) {
+            // Ganador en tiempo reglamentario
             partido.setGanador(partido.getEquipoLocal());
         } else if (golesVisitante > golesLocal) {
+            // Ganador en tiempo reglamentario
             partido.setGanador(partido.getEquipoVisitante());
         } else {
-            throw new IllegalStateException("En fase final debe haber un ganador.");
+            // Empate en tiempo reglamentario: definir por penales
+            if (penalesLocal == null || penalesVisitante == null || penalesLocal.equals(penalesVisitante)) {
+                throw new IllegalStateException("En fase final debe haber un ganador (revisar penales).");
+            }
+
+            if (penalesLocal > penalesVisitante) {
+                partido.setGanador(partido.getEquipoLocal());
+            } else {
+                partido.setGanador(partido.getEquipoVisitante());
+            }
         }
 
-        // 3. EVITAR EL ERROR DE LA ZONA (Null Safe)
-        // En lugar de hacer: partido.getZona().getTorneo()
-        // Usa una lógica que verifique si existe la zona o usa la etapa
-        if (partido.getZona() != null) {
-            // Lógica para liga/grupos
-            System.out.println("Torneo de zona: " + partido.getZona().getTorneo().getNombre());
-        } else if (partido.getEtapa() != null) {
-            // Lógica para fase final
-            System.out.println("Torneo de etapa: " + partido.getEtapa().getTorneo().getNombre());
+        // 4. Lógica de Torneo (Null Safe)
+        String nombreTorneo = "";
+        if (partido.getZona() != null && partido.getZona().getTorneo() != null) {
+            nombreTorneo = partido.getZona().getTorneo().getNombre();
+        } else if (partido.getEtapa() != null && partido.getEtapa().getTorneo() != null) {
+            nombreTorneo = partido.getEtapa().getTorneo().getNombre();
         }
+
+        System.out.println("Procesando fin de partido para el torneo: " + nombreTorneo);
 
         return partidoRepository.save(partido);
-
     }
-
 
 
     public List<FixtureFechaDTO> obtenerFixturePorZona(Long zonaId) {
@@ -673,4 +742,7 @@ public class PartidoService {
         }
     }
 
+    public boolean existsByEtapaId(Long etapaId) {
+        return partidoRepository.existsByEtapaId(etapaId);
+    }
 }

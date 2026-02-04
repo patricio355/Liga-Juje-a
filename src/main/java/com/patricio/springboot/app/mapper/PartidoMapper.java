@@ -78,6 +78,8 @@ public class PartidoMapper {
 
         dto.setGolesLocal(p.getGolesLocal());
         dto.setGolesVisitante(p.getGolesVisitante());
+        dto.setGolesLocalPenales(p.getGolesLocalPenales());
+        dto.setGolesVisitantePenales(p.getGolesVisitantePenales());
 
         dto.setNumeroFecha(p.getNumeroFecha());
         dto.setEstado(p.getEstado());

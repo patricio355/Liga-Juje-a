@@ -8,4 +8,6 @@ import lombok.Setter;
 public class SolicitudCierreRequest {
     private Integer golesLocal;
     private Integer golesVisitante;
+    private Integer golesLocalPenales;
+    private Integer golesVisitantePenales;
 }

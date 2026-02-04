@@ -4,6 +4,7 @@ import com.patricio.springboot.app.dto.*;
 import com.patricio.springboot.app.entity.*;
 import com.patricio.springboot.app.mapper.TorneoMapper;
 import com.patricio.springboot.app.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -552,6 +553,8 @@ public class TorneoService {
                 // --- GOLES Y RESULTADOS ---
                 pDto.setGolesLocal(p.getGolesLocal());
                 pDto.setGolesVisitante(p.getGolesVisitante());
+                pDto.setGolesLocalPenales(p.getGolesLocalPenales());
+                pDto.setGolesVisitantePenales(p.getGolesVisitantePenales());
 
 
                 // --- FECHA Y HORA (Null-Safe) ---
@@ -577,5 +580,24 @@ public class TorneoService {
             dto.setPartidos(partidosDTO);
             return dto;
         }).collect(Collectors.toList());
+    }
+
+
+    @Transactional
+    public void eliminarEtapaSiEstaVacia(Long etapaId) {
+        // 1. Buscamos la etapa
+        EtapaTorneo etapa = etapaTorneoRepository.findById(etapaId)
+                .orElseThrow(() -> new EntityNotFoundException("La etapa no existe."));
+
+        // 2. Verificamos si tiene partidos asociados en la DB
+        // Importante: Usamos el método que ya deberías tener en tu PartidoRepository
+        boolean tienePartidos = partidoService.existsByEtapaId(etapaId);
+
+        if (tienePartidos) {
+            throw new IllegalStateException("No puedes eliminar una etapa que ya tiene partidos configurados.");
+        }
+
+        // 3. Borrado físico
+        etapaTorneoRepository.delete(etapa);
     }
 }
