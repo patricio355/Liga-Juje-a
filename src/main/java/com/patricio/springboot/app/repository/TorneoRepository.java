@@ -66,4 +66,6 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
     boolean existsBySlug(String slugFinal);
 
     List<Torneo> findByEstadoIgnoreCase(String estado);
+
+
 }

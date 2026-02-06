@@ -45,6 +45,16 @@ public class PartidoController {
         }
     }
 
+    @PutMapping("/{id}/editar-resultado")
+    public ResponseEntity<Void> editarResultado(
+            @PathVariable Long id,
+            @RequestParam Integer golesLocal,
+            @RequestParam Integer golesVisitante
+    ) {
+        partidoService.editarResultado(id, golesLocal, golesVisitante);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/faseFinal/{id}")
     public ResponseEntity<?> eliminarFaseFinal(@PathVariable Long id) {
         try {

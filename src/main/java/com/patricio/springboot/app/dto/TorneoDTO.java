@@ -34,6 +34,9 @@ public class TorneoDTO {
     private String genero;
     private String redSocial;
     private String encargadoTelefono;
+    private Boolean faseFinal;
+
+    private Boolean faseGrupos;
 // Getters y Setters...
 
 }
