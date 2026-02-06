@@ -30,6 +30,8 @@ public class TorneoMapper {
         dto.setCreadorId(torneo.getCreador().getId());
         dto.setPuntosEmpate(torneo.getPuntosEmpate());
         dto.setPuntosGanador(torneo.getPuntosGanador());
+        dto.setFaseFinal(torneo.getFaseFinal());
+        dto.setFaseGrupos(torneo.getFaseGrupos());
 
         dto.setFotoUrl(torneo.getFotoUrl());
         dto.setGenero(torneo.getGenero());
@@ -60,6 +62,18 @@ public class TorneoMapper {
                                                 edto.setId(e.getId());
                                                 edto.setNombre(e.getNombre());
                                                 edto.setEscudo(e.getEscudo());
+                                                edto.setCamisetaTitular(e.getCamisetaTitular());
+                                                edto.setCamisetaSuplente(e.getCamisetaSuplente());
+                                                if (e.getLocalia() != null) {
+                                                    edto.setCanchaId(e.getLocalia().getId());
+                                                }
+                                                if(e.getEncargado() != null) {
+                                                    edto.setEncargadoEmail(e.getEncargado().getEmail());
+                                                }
+                                               if (e.getLocalidad() != null) {
+                                                   edto.setLocalidad(e.getLocalidad());
+                                               }
+
                                                 edto.setEstado(e.isEstado());
                                                 edto.setEquipoZonaId(ez.getId());
                                                 return edto;
@@ -102,6 +116,8 @@ public class TorneoMapper {
         t.setTipo(dto.getTipo());
         t.setPuntosGanador(dto.getPuntosGanador());
         t.setPuntosEmpate(dto.getPuntosEmpate());
+        t.setFaseFinal(dto.getFaseFinal());
+        t.setFaseGrupos(dto.getFaseGrupos());
 
         // --- NUEVOS ATRIBUTOS DE COLOR ---
         t.setColorPrimario(dto.getColorPrimario());
@@ -132,6 +148,7 @@ public class TorneoMapper {
         dto.setColorSecundario(torneo.getColorSecundario());
         dto.setColorTextoPrimario(torneo.getColorTextoPrimario());
         dto.setColorTextoSecundario(torneo.getColorTextoSecundario());
+
         return dto;
     }
 }

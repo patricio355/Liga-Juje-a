@@ -567,6 +567,85 @@ public class PartidoService {
         partidoRepository.save(partido);
     }
 
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "programacion", allEntries = true),
+            @CacheEvict(value = "torneos", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
+    })
+    public void editarResultado(Long partidoId, Integer nuevosGolesLocal, Integer nuevosGolesVisitante) {
+        // 1. Buscar el partido
+        Partido partido = partidoRepository.findById(partidoId)
+                .orElseThrow(() -> new RuntimeException("Partido no encontrado"));
+
+        if (!"FINALIZADO".equals(partido.getEstado())) {
+            throw new RuntimeException("Solo se pueden editar resultados de partidos finalizados");
+        }
+
+        // 2. REVERTIR RESULTADO VIEJO
+        // Usamos los goles que tiene el objeto 'partido' actualmente (los de la DB)
+        revertirEstadisticasEquipo(partido.getEquipoLocal(), partido.getGolesLocal(), partido.getGolesVisitante(), partido.getZona().getTorneo().getId());
+        revertirEstadisticasEquipo(partido.getEquipoVisitante(), partido.getGolesVisitante(), partido.getGolesLocal(), partido.getZona().getTorneo().getId());
+
+        // 3. ACTUALIZAR EL OBJETO PARTIDO CON DATOS NUEVOS
+        partido.setGolesLocal(nuevosGolesLocal);
+        partido.setGolesVisitante(nuevosGolesVisitante);
+
+        if (nuevosGolesLocal > nuevosGolesVisitante) {
+            partido.setGanador(partido.getEquipoLocal());
+        } else if (nuevosGolesVisitante > nuevosGolesLocal) {
+            partido.setGanador(partido.getEquipoVisitante());
+        } else {
+            partido.setGanador(null);
+        }
+
+        // 4. CARGAR RESULTADO NUEVO
+        // Buscamos los EquipoZona (ez) de nuevo para asegurarnos de tener el estado revertido
+        EquipoZona ezLocal = equipoZonaRepository
+                .findByZonaIdAndEquipoId(partido.getZona().getId(), partido.getEquipoLocal().getId())
+                .orElseThrow(() -> new RuntimeException("Equipo local no encontrado"));
+
+        EquipoZona ezVisitante = equipoZonaRepository
+                .findByZonaIdAndEquipoId(partido.getZona().getId(), partido.getEquipoVisitante().getId())
+                .orElseThrow(() -> new RuntimeException("Equipo visitante no encontrado"));
+
+
+        int ptsGanador = partido.getZona().getTorneo().getPuntosGanador();
+        int ptsEmpate = partido.getZona().getTorneo().getPuntosEmpate();
+
+        sumarEstadisticas(ezLocal, ezVisitante, nuevosGolesLocal, nuevosGolesVisitante, ptsGanador, ptsEmpate);
+
+        // 5. Guardar todo
+        equipoZonaRepository.save(ezLocal);
+        equipoZonaRepository.save(ezVisitante);
+        partidoRepository.save(partido);
+    }
+
+
+    private void sumarEstadisticas(EquipoZona local, EquipoZona visitante, int gL, int gV, int ptsG, int ptsE) {
+        local.setPartidosJugados(local.getPartidosJugados() + 1);
+        visitante.setPartidosJugados(visitante.getPartidosJugados() + 1);
+        local.setGolesAFavor(local.getGolesAFavor() + gL);
+        local.setGolesEnContra(local.getGolesEnContra() + gV);
+        visitante.setGolesAFavor(visitante.getGolesAFavor() + gV);
+        visitante.setGolesEnContra(visitante.getGolesEnContra() + gL);
+
+        if (gL > gV) {
+            local.setGanados(local.getGanados() + 1);
+            local.setPuntos(local.getPuntos() + ptsG);
+            visitante.setPerdidos(visitante.getPerdidos() + 1);
+        } else if (gV > gL) {
+            visitante.setGanados(visitante.getGanados() + 1);
+            visitante.setPuntos(visitante.getPuntos() + ptsG);
+            local.setPerdidos(local.getPerdidos() + 1);
+        } else {
+            local.setEmpatados(local.getEmpatados() + 1);
+            visitante.setEmpatados(visitante.getEmpatados() + 1);
+            local.setPuntos(local.getPuntos() + ptsE);
+            visitante.setPuntos(visitante.getPuntos() + ptsE);
+        }
+    }
+
 
     @Transactional
     public void solicitarCierre(

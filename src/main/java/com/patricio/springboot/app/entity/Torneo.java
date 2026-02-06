@@ -36,6 +36,10 @@ public class Torneo {
 
     private String tipo;
 
+    private Boolean faseFinal;
+
+    private Boolean faseGrupos;
+
     @Column(unique = true, nullable = false)
     private String slug;
 
@@ -69,4 +73,6 @@ public class Torneo {
 
     @Column(name = "red_social")
     private String redSocial;
+
+
 }

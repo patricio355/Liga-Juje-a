@@ -68,7 +68,7 @@ public class SecurityConfig {
                 )
         );
         config.setAllowedMethods(
-                Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH")
         );
         config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
         config.setExposedHeaders(Arrays.asList("Authorization"));

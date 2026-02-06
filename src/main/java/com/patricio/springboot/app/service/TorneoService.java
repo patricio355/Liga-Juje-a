@@ -600,4 +600,36 @@ public class TorneoService {
         // 3. Borrado físico
         etapaTorneoRepository.delete(etapa);
     }
+
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            // CAMBIO: Limpiamos todos los detalles para asegurar que el slug se actualice
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
+    })
+    public void cambiarEstadoFaseFinalBySlug(Boolean estado, String slug) {
+        // Asumiendo que tienes un método findBySlug en tu repositorio
+        Torneo torneo = torneoRepository.findBySlugOptimized(slug)
+                .orElseThrow(() -> new EntityNotFoundException("El torneo con slug " + slug + " no existe."));
+        torneo.setFaseFinal(estado);
+    }
+
+    @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+            @CacheEvict(value = "torneosActivos", allEntries = true),
+            // CAMBIO: Limpiamos todos los detalles para asegurar que el slug se actualice
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
+    })
+    public void cambiarEstadoFaseGruposBySlug(Boolean estado, String slug) {
+        Torneo torneo = torneoRepository.findBySlugOptimized(slug)
+                .orElseThrow(() -> new EntityNotFoundException("El torneo con slug " + slug + " no existe."));
+        torneo.setFaseGrupos(estado);
+    }
 }

@@ -239,4 +239,20 @@ public class TorneoController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
         }
     }
+
+    @PatchMapping("/{slug}/fase-final")
+    public ResponseEntity<Void> actualizarEstadoFaseFinal(
+            @PathVariable String slug,
+            @RequestParam Boolean estado) {
+        torneoService.cambiarEstadoFaseFinalBySlug(estado, slug);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{slug}/fase-grupos")
+    public ResponseEntity<Void> actualizarEstadoFaseGrupos(
+            @PathVariable String slug,
+            @RequestParam Boolean estado) {
+        torneoService.cambiarEstadoFaseGruposBySlug(estado, slug);
+        return ResponseEntity.noContent().build();
+    }
 }
