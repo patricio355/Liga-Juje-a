@@ -10,6 +10,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -741,14 +742,27 @@ public class PartidoService {
         }
 
         // 4. Actualizar Cancha
-        if (canchaNombre != null && !canchaNombre.isEmpty()) {
-            Cancha cancha = canchaRepository.findByNombre(canchaNombre)
+        if (canchaNombre != null && !canchaNombre.isBlank()) {
+            // 1. Obtenemos el email del SecurityContext
+            String emailAdmin = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            // 2. Buscamos el objeto Usuario para tener su ID
+            Usuario creador = usuarioRepository.findByEmail(emailAdmin)
+                    .orElseThrow(() -> new RuntimeException("Usuario creador no encontrado"));
+
+            // 3. Buscamos la cancha filtrando por NOMBRE y CREADOR_ID
+            Cancha cancha = canchaRepository.findByNombreAndCreadorId(canchaNombre.toUpperCase(), creador.getId())
                     .orElseGet(() -> {
+
                         Cancha nueva = new Cancha();
-                        nueva.setNombre(canchaNombre);
+                        nueva.setNombre(canchaNombre.toUpperCase());
                         nueva.setEstado(true);
+                        nueva.setValorEntrada(0.0);
+                        nueva.setUbicacion("DIRECCIÓN A DEFINIR");
+                        nueva.setCreador(creador); // Vinculamos la nueva cancha al usuario
                         return canchaRepository.save(nueva);
                     });
+
             pf.setCancha(cancha);
             partido.setCancha(cancha);
         }
