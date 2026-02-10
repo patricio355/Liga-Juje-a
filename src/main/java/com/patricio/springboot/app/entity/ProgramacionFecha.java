@@ -38,6 +38,8 @@ public class ProgramacionFecha {
     @OnDelete(action = OnDeleteAction.SET_NULL)
     private Cancha cancha;
 
+    private String ubicacionUrl;
+
     private String estado; // PROGRAMADO / JUGADO
 }
 
