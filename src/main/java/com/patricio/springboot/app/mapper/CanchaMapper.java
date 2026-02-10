@@ -15,7 +15,10 @@ public class CanchaMapper {
         dto.setUbicacion(c.getUbicacion());
         dto.setFotoUrl(c.getFotoUrl());
         dto.setValorEntrada(c.getValorEntrada());
-        dto.setHabilitacionPdf(c.getHabilitacionPdf());
+        dto.setUbicacionUrl(c.getUbicacionUrl());
+
+        dto.setCreador_id(c.getCreador().getId());
+
         return dto;
     }
 
@@ -27,7 +30,8 @@ public class CanchaMapper {
         c.setUbicacion(dto.getUbicacion());
         c.setFotoUrl(dto.getFotoUrl());
         c.setValorEntrada(dto.getValorEntrada());
-        c.setHabilitacionPdf(dto.getHabilitacionPdf());
+        c.setUbicacionUrl(dto.getUbicacionUrl());
+        c.setEstado(dto.getEstado() != null && dto.getEstado());
         return c;
     }
 }

@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -33,6 +35,7 @@ public class ProgramacionFecha {
 
     @ManyToOne
     @JoinColumn(name = "cancha_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private Cancha cancha;
 
     private String estado; // PROGRAMADO / JUGADO

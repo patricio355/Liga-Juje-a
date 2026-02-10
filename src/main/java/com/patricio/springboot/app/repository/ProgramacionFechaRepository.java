@@ -100,4 +100,6 @@ public interface ProgramacionFechaRepository
     void deleteByPartido_Zona_Id(Long idZona);
 
     void deleteByPartidoId(Long partidoId);
+
+    List<ProgramacionFecha> findByCanchaId(Long id);
 }

@@ -19,50 +19,51 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
-
 @Slf4j
 @Tag(name = "Canchas", description = "Operaciones relacionadas con las canchas")
 @RestController
 @RequestMapping("/api/canchas")
 public class CanchaController {
 
-    private CanchaService canchaService;
+    private final CanchaService canchaService;
 
     public CanchaController (CanchaService canchaService){
         this.canchaService = canchaService;
     }
 
-    //listar todas las canchas
     @GetMapping
-    @Operation(summary = "Listar todas las canchas",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "Listado obtenido correctamente",
-                            content = @Content(mediaType = "application/json",
-                                    array = @ArraySchema(schema = @Schema(implementation = Cancha.class))))
-            })
     public ResponseEntity<List<CanchaDTO>> listar() {
         log.info("Listando canchas...");
-        List<CanchaDTO> lista = canchaService.listarCanchas() ;
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(canchaService.listarCanchas());
     }
 
-
-
-    // obtener cancha por id
     @GetMapping("/{id}")
-    @Operation()
-    public ResponseEntity<CanchaDTO> obtenerCanchaPorID( @PathVariable Long id) {
-        log.info("Obteniendo cancha por ID...");
-        Optional<CanchaDTO> cancha = canchaService.buscarForID(id);
-        return cancha.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<CanchaDTO> obtenerCanchaPorID(@PathVariable Long id) {
+        return canchaService.buscarForID(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
-
 
     @PostMapping
-    @Operation()
     public ResponseEntity<CanchaDTO> crearCancha(@RequestBody CanchaDTO cancha) {
-        log.info("Creando cancha...");
-        CanchaDTO creado = canchaService.crearCancha(cancha);
-        return ResponseEntity.ok().body(creado);
+        log.info("Creando nueva cancha: {}", cancha.getNombre());
+        return ResponseEntity.ok(canchaService.crearCancha(cancha));
+    }
+
+    // --- NUEVOS MÉTODOS ---
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar una cancha existente")
+    public ResponseEntity<CanchaDTO> actualizarCancha(@PathVariable Long id, @RequestBody CanchaDTO canchaDTO) {
+        log.info("Actualizando cancha ID: {}", id);
+        return ResponseEntity.ok(canchaService.actualizarCancha(id, canchaDTO));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar una cancha")
+    public ResponseEntity<Void> eliminarCancha(@PathVariable Long id) {
+        log.info("Eliminando cancha ID: {}", id);
+        canchaService.eliminarCancha(id);
+        return ResponseEntity.noContent().build();
     }
 }

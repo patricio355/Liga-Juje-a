@@ -47,4 +47,6 @@ public interface PartidoRepository extends JpaRepository<Partido, Long> {
     List<Partido> findAllByZonaIdAndEquipoId(Long zonaId, Long equipoId);
 
     boolean existsByEtapaId(Long etapaId);
+
+    List<Partido> findByCanchaId(Long id);
 }
