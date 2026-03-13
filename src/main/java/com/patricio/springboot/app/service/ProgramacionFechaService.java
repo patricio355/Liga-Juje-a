@@ -156,14 +156,9 @@ public class ProgramacionFechaService {
                     dto.setFecha(pf.getFecha() != null ? pf.getFecha().toString() : null);
                     dto.setHora(pf.getHora() != null ? pf.getHora().toString() : null);
 
-                    // Si el registro de programación no tiene cancha, usamos la del local
+                    //
                     if (pf.getCancha() != null) {
                         dto.setCancha(pf.getCancha().getNombre());
-
-                    } else if (p.getEquipoLocal().getLocalia() != null) {
-                        dto.setCancha(p.getEquipoLocal().getLocalia().getNombre());
-                    }
-                    if(pf.getCancha() != null) {
                         dto.setUbicacionUrl(pf.getCancha().getUbicacionUrl());
                     }
 

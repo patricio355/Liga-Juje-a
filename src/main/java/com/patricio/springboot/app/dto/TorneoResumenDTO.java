@@ -15,6 +15,8 @@ public class TorneoResumenDTO {
     private String colorSecundario;
     private String colorTextoPrimario;
     private String colorTextoSecundario;
+    private Boolean estadoTorneo;
+
     // IMPORTANTE: No incluimos List<ZonaDTO> aquí
 
     // Getters y Setters...

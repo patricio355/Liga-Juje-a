@@ -234,6 +234,12 @@ public class TorneoService {
         torneo.setColorSecundario(dto.getColorSecundario());
         torneo.setColorTextoPrimario(dto.getColorTextoPrimario());
         torneo.setColorTextoSecundario(dto.getColorTextoSecundario());
+        torneo.setEstadoTorneo(dto.getEstadoTorneo());
+        torneo.setCampeon(dto.getCampeon());
+            torneo.setTelefono(dto.getTelefono());
+
+
+
 // ==============================================
         // === AGREGAR ESTO ===
         torneo.setFotoUrl(dto.getFotoUrl());
