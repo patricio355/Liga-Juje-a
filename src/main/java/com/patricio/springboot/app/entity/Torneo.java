@@ -74,5 +74,14 @@ public class Torneo {
     @Column(name = "red_social")
     private String redSocial;
 
+    @Column(name = "telefono")
+    private String telefono;
+
+    @Column(name = "campeon")
+    private String campeon;
+
+    @Column(name = "estadoTorneo")
+    private Boolean estadoTorneo;
+
 
 }

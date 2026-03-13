@@ -21,7 +21,14 @@ public class TorneoMapper {
         );
         if (torneo.getEncargado() != null) {
             dto.setEncargadoTelefono(torneo.getEncargado().getTelefono());
+            dto.setTelefono(torneo.getTelefono());
         }
+        if (torneo.getCampeon() != null) {
+            dto.setCampeon(torneo.getCampeon());
+        }
+
+        dto.setEstadoTorneo(torneo.getEstadoTorneo());
+
         dto.setEstado(torneo.getEstado());
         dto.setFechaCreacion(torneo.getFechaCreacion());
         dto.setTipo(torneo.getTipo());
@@ -118,6 +125,11 @@ public class TorneoMapper {
         t.setPuntosEmpate(dto.getPuntosEmpate());
         t.setFaseFinal(dto.getFaseFinal());
         t.setFaseGrupos(dto.getFaseGrupos());
+        t.setTelefono(dto.getTelefono());
+        t.setEstadoTorneo(dto.getEstadoTorneo());
+        if  (dto.getCampeon() != null) {
+            t.setCampeon(dto.getCampeon());
+        }
 
         // --- NUEVOS ATRIBUTOS DE COLOR ---
         t.setColorPrimario(dto.getColorPrimario());
@@ -148,6 +160,7 @@ public class TorneoMapper {
         dto.setColorSecundario(torneo.getColorSecundario());
         dto.setColorTextoPrimario(torneo.getColorTextoPrimario());
         dto.setColorTextoSecundario(torneo.getColorTextoSecundario());
+        dto.setEstadoTorneo(torneo.getEstadoTorneo());
 
         return dto;
     }

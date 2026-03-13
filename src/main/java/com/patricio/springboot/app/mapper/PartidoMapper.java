@@ -50,6 +50,7 @@ public class PartidoMapper {
         if (p.getCancha() != null) {
             dto.setCanchaId(p.getCancha().getId());
             dto.setCanchaNombre(p.getCancha().getNombre());
+            dto.setUbicacionUrl(p.getCancha().getUbicacionUrl());
         }
 
         // Zona

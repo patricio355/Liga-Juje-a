@@ -26,7 +26,7 @@ public class PartidoDTO {
     // Cancha
     private Long canchaId;
     private String canchaNombre;
-
+    private String ubicacionUrl;
     // Zona
     private Long zonaId;
     private String zonaNombre;
@@ -39,6 +39,8 @@ public class PartidoDTO {
     private Integer golesVisitante;
     private Integer golesLocalPenales;
     private Integer golesVisitantePenales;
+
+
 
     // Otros
     private String veedor;
