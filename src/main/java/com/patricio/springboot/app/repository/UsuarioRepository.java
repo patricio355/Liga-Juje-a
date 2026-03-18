@@ -31,4 +31,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("SELECT u FROM Usuario u WHERE u.creador.id = :creadorId")
     List<Usuario> findByCreadorId(@Param("creadorId") Long creadorId);
 
+    List<Usuario> findByRolAndActivoTrueAndCreador_Id(String rol, Long creadorId);
+
+
 }

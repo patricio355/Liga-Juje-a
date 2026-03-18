@@ -6,6 +6,7 @@ import com.patricio.springboot.app.repository.UsuarioRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -193,9 +194,18 @@ public class UsuarioService {
 
 
     public List<UsuarioDTO> listarArbitros() {
-        return usuarioRepository.findAll()
+        // 1. Obtener el email del usuario logueado (Spring Security devuelve un String o UserDetails)
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String emailLogueado = auth.getName();
+
+        // 2. Buscar al usuario 'creador' por su email en la DB para tener su ID
+        // Asumo que tienes findByEmail en tu UsuarioRepository
+        Usuario creador = usuarioRepository.findByEmail(emailLogueado)
+                .orElseThrow(() -> new RuntimeException("No se encontró el creador con email: " + emailLogueado));
+
+        // 3. Ahora sí, filtramos los árbitros usando el ID del creador encontrado
+        return usuarioRepository.findByRolAndActivoTrueAndCreador_Id("ARBITRO", creador.getId())
                 .stream()
-                .filter(u -> "ARBITRO".equals(u.getRol()) && u.isActivo()) // Filtra por rol y que esté activo
                 .map(UsuarioMapper::toDTO)
                 .toList();
     }
