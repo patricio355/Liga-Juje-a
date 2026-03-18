@@ -277,7 +277,8 @@ public class EquipoService {
     @Transactional
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", allEntries = true)
+            @CacheEvict(value = "torneoDetalle", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
     })
     public EquipoDTO eliminarEquipo(Long id) {
         Equipo eq = equipoRepository.findById(id)
@@ -292,7 +293,8 @@ public class EquipoService {
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
             @CacheEvict(value = "torneoDetalle", allEntries = true),
-            @CacheEvict(value = "zonasPorTorneo", allEntries = true)
+            @CacheEvict(value = "zonasPorTorneo", allEntries = true),
+            @CacheEvict(value = "tablaPosiciones", allEntries = true)
     })
     public EquipoDTO editarEquipo(Long id, EquipoDTO dto) {
 
