@@ -46,98 +46,188 @@ public class TorneoService {
         this.etapaTorneoRepository = etapaTorneoRepository;
     }
 
-    @Caching(evict = {
-            @CacheEvict(value = "dashboardTorneos", allEntries = true),
-            @CacheEvict(value = "torneosActivos", allEntries = true)
-    })
-    public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
+//    @Caching(evict = {
+//            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+//            @CacheEvict(value = "torneosActivos", allEntries = true)
+//    })
+//    public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
+//
+//        boolean existeActivo;
+//
+//// Verificamos si el DTO trae una división real (que no sea null ni texto vacío)
+//        if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
+//            // CASO A: El torneo nuevo TIENE división.
+//            // Buscamos si ya existe uno con: Mismo Nombre + Misma División + Activo
+//            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCase(
+//                    dto.getNombre().trim(),
+//                    dto.getDivision().trim(),
+//                    "activo"
+//            );
+//        } else {
+//            // CASO B: El torneo nuevo NO TIENE división.
+//            // Buscamos si ya existe uno con: Mismo Nombre + División NULL + Activo
+//            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCase(
+//                    dto.getNombre().trim(),
+//                    "activo"
+//            );
+//        }
+//
+//        if (existeActivo) {
+//            // Personalizamos el mensaje de error para que sea claro
+//            String errorMsg = "Ya existe un torneo activo con el nombre '" + dto.getNombre() + "'";
+//            if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
+//                errorMsg += " en la división " + dto.getDivision();
+//            }
+//            throw new RuntimeException(errorMsg);
+//        }
+//
+//        Torneo torneo = TorneoMapper.toEntity(dto);
+//        torneo.setFechaCreacion(LocalDate.now());
+//
+//        boolean esAdmin = auth.getAuthorities().stream()
+//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+//
+//
+//        String emailAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
+//        Usuario usuarioLogueado = usuarioRepository.findByEmail(emailAutenticado).orElseThrow();
+//
+//
+//        if (usuarioLogueado.getRol().equals("ROLE_ADMIN") && dto.getEncargadoEmail() != null) {
+//
+//            Usuario encargadoAsignado = usuarioRepository.findByEmail(dto.getEncargadoEmail()).orElseThrow();
+//            torneo.setEncargado(encargadoAsignado);
+//        } else {
+//
+//            torneo.setEncargado(usuarioLogueado);
+//        }
+//
+//
+//        torneo.setCreador(usuarioLogueado);
+//
+//
+//        String emailEncargado;
+//
+//        if (esAdmin) {
+//
+//            emailEncargado = dto.getEncargadoEmail();
+//        } else {
+//
+//            emailEncargado = auth.getName();
+//        }
+//
+//        if (emailEncargado != null && !emailEncargado.isBlank()) {
+//
+//            if (!emailEncargado.contains("@")) {
+//                throw new RuntimeException("Email inválido");
+//            }
+//
+//            Usuario encargado = usuarioRepository.findByEmail(emailEncargado)
+//                    .orElseThrow(() ->
+//                            new RuntimeException("No existe usuario con ese email")
+//                    );
+//
+//            if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
+//                throw new RuntimeException("El usuario no es encargado de torneo");
+//            }
+//
+//            torneo.setEncargado(encargado);
+//        }
+//
+//
+//        String slug = crearSlugSeguro(torneo.getNombre());
+//        torneo.setSlug(slug);
+//
+//        return TorneoMapper.toDTO(torneoRepository.save(torneo));
+//    }
 
-        boolean existeActivo;
+@Caching(evict = {
+        @CacheEvict(value = "dashboardTorneos", allEntries = true),
+        @CacheEvict(value = "torneosActivos", allEntries = true)
+})
+@Transactional
+public TorneoDTO crearTorneo(TorneoDTO dto, Authentication auth) {
 
-// Verificamos si el DTO trae una división real (que no sea null ni texto vacío)
+    // 1. VALIDACIÓN DE EXISTENCIA (Torneo vigente y no finalizado)
+    validarTorneoExistente(dto);
+
+    // 2. MAPEO INICIAL
+    Torneo torneo = TorneoMapper.toEntity(dto);
+    torneo.setFechaCreacion(LocalDate.now());
+
+    // Seteamos por defecto que el nuevo torneo inicia no finalizado (true)
+    torneo.setEstadoTorneo(true);
+    torneo.setEstado("activo");
+
+    // 3. GESTIÓN DE USUARIOS (Creador y Encargado)
+    String emailAutenticado = auth.getName();
+    Usuario usuarioLogueado = usuarioRepository.findByEmail(emailAutenticado)
+            .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado"));
+
+    torneo.setCreador(usuarioLogueado);
+
+    // Determinamos quién será el encargado
+    boolean esAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+    String emailDestinoEncargado;
+
+    // Si es Admin y envió un email en el DTO, intentamos asignar a ese tercero
+    if (esAdmin && dto.getEncargadoEmail() != null && !dto.getEncargadoEmail().isBlank()) {
+        emailDestinoEncargado = dto.getEncargadoEmail().trim();
+    } else {
+        // Si no es admin o no envió email, el encargado es él mismo
+        emailDestinoEncargado = emailAutenticado;
+    }
+
+    // Validar y asignar el objeto Usuario Encargado
+    Usuario encargado = validarYObtenerEncargado(emailDestinoEncargado);
+    torneo.setEncargado(encargado);
+
+    // 4. GENERACIÓN DE SLUG Y GUARDADO
+    String slug = crearSlugSeguro(torneo.getNombre());
+    torneo.setSlug(slug);
+
+    return TorneoMapper.toDTO(torneoRepository.save(torneo));
+}
+
+    private void validarTorneoExistente(TorneoDTO dto) {
+        boolean existe;
+        String nombre = dto.getNombre().trim();
+        String estadoActivo = "activo";
+        boolean noFinalizado = true;
+
         if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
-            // CASO A: El torneo nuevo TIENE división.
-            // Buscamos si ya existe uno con: Mismo Nombre + Misma División + Activo
-            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCase(
-                    dto.getNombre().trim(),
-                    dto.getDivision().trim(),
-                    "activo"
-            );
+            String div = dto.getDivision().trim();
+            existe = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndEstadoTorneo(
+                    nombre, div, estadoActivo, noFinalizado);
         } else {
-            // CASO B: El torneo nuevo NO TIENE división.
-            // Buscamos si ya existe uno con: Mismo Nombre + División NULL + Activo
-            existeActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCase(
-                    dto.getNombre().trim(),
-                    "activo"
-            );
+            existe = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndEstadoTorneo(
+                    nombre, estadoActivo, noFinalizado);
         }
 
-        if (existeActivo) {
-            // Personalizamos el mensaje de error para que sea claro
-            String errorMsg = "Ya existe un torneo activo con el nombre '" + dto.getNombre() + "'";
+        if (existe) {
+            String msg = "Ya existe un torneo vigente con el nombre '" + nombre + "'";
             if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
-                errorMsg += " en la división " + dto.getDivision();
+                msg += " en la división " + dto.getDivision();
             }
-            throw new RuntimeException(errorMsg);
+            throw new RuntimeException(msg);
+        }
+    }
+
+    private Usuario validarYObtenerEncargado(String email) {
+        if (!email.contains("@")) {
+            throw new RuntimeException("El formato del email '" + email + "' es inválido");
         }
 
-        Torneo torneo = TorneoMapper.toEntity(dto);
-        torneo.setFechaCreacion(LocalDate.now());
+        Usuario u = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("No existe usuario con el email: " + email));
 
-        boolean esAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-
-        String emailAutenticado = SecurityContextHolder.getContext().getAuthentication().getName();
-        Usuario usuarioLogueado = usuarioRepository.findByEmail(emailAutenticado).orElseThrow();
-
-
-        if (usuarioLogueado.getRol().equals("ROLE_ADMIN") && dto.getEncargadoEmail() != null) {
-
-            Usuario encargadoAsignado = usuarioRepository.findByEmail(dto.getEncargadoEmail()).orElseThrow();
-            torneo.setEncargado(encargadoAsignado);
-        } else {
-
-            torneo.setEncargado(usuarioLogueado);
+        // Validación de Rol (Asegúrate que en la DB el String sea exactamente este)
+        if (!u.getRol().equals("ENCARGADOTORNEO") && !u.getRol().equals("ROLE_ADMIN")) {
+            throw new RuntimeException("El usuario seleccionado no tiene permisos de encargado");
         }
 
-
-        torneo.setCreador(usuarioLogueado);
-
-
-        String emailEncargado;
-
-        if (esAdmin) {
-
-            emailEncargado = dto.getEncargadoEmail();
-        } else {
-
-            emailEncargado = auth.getName();
-        }
-
-        if (emailEncargado != null && !emailEncargado.isBlank()) {
-
-            if (!emailEncargado.contains("@")) {
-                throw new RuntimeException("Email inválido");
-            }
-
-            Usuario encargado = usuarioRepository.findByEmail(emailEncargado)
-                    .orElseThrow(() ->
-                            new RuntimeException("No existe usuario con ese email")
-                    );
-
-            if (!encargado.getRol().equals("ENCARGADOTORNEO")) {
-                throw new RuntimeException("El usuario no es encargado de torneo");
-            }
-
-            torneo.setEncargado(encargado);
-        }
-
-
-        String slug = crearSlugSeguro(torneo.getNombre());
-        torneo.setSlug(slug);
-
-        return TorneoMapper.toDTO(torneoRepository.save(torneo));
+        return u;
     }
 
     public String crearSlugSeguro(String nombreOriginal) {
@@ -177,105 +267,199 @@ public class TorneoService {
                 .toList();
     }
 
+//
+//    @Caching(evict = {
+//            @CacheEvict(value = "dashboardTorneos", allEntries = true),
+//            @CacheEvict(value = "torneosActivos", allEntries = true),
+//            @CacheEvict(value = "torneoDetalle", allEntries = true)
+//    })
+//    public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
+//
+//        // 1. Buscamos el torneo existente
+//        Torneo torneo = torneoRepository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
+//
+//// 2. Validamos duplicados (Nombre + División) EXCLUYENDO el ID actual
+//        boolean existeOtroActivo;
+//
+//        // Verificamos si el DTO trae una división real
+//        if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
+//            // CASO A: Tiene división. Buscamos duplicado excluyendo este ID
+//            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndIdNot(
+//                    dto.getNombre().trim(),
+//                    dto.getDivision().trim(),
+//                    "activo",
+//                    id // <--- Importante: Pasamos el ID para excluirlo
+//            );
+//        } else {
+//            // CASO B: No tiene división (es null). Buscamos duplicado excluyendo este ID
+//            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndIdNot(
+//                    dto.getNombre().trim(),
+//                    "activo",
+//                    id // <--- Importante
+//            );
+//        }
+//
+//        if (existeOtroActivo) {
+//            String errorMsg = "Ya existe otro torneo activo con el nombre '" + dto.getNombre() + "'";
+//            if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
+//                errorMsg += " en la división " + dto.getDivision();
+//            }
+//            throw new RuntimeException(errorMsg);
+//        }
+//
+//// 3. Si pasa la validación, procedemos a actualizar
+//        torneo.setNombre(dto.getNombre());
+//        torneo.setDivision(dto.getDivision());
+//
+//        if (dto.getEstado() != null && !dto.getEstado().isBlank()){
+//            torneo.setEstado(dto.getEstado());
+//        }
+//        if (dto.getTipo() != null) {
+//            torneo.setTipo(dto.getTipo());
+//        }
+//
+//        // === AGREGAR ESTO PARA PROCESAR LOS COLORES ===
+//        torneo.setColorPrimario(dto.getColorPrimario());
+//        torneo.setColorSecundario(dto.getColorSecundario());
+//        torneo.setColorTextoPrimario(dto.getColorTextoPrimario());
+//        torneo.setColorTextoSecundario(dto.getColorTextoSecundario());
+//        torneo.setEstadoTorneo(dto.getEstadoTorneo());
+//        torneo.setCampeon(dto.getCampeon());
+//            torneo.setTelefono(dto.getTelefono());
+//
+//
+//
+//// ==============================================
+//        // === AGREGAR ESTO ===
+//        torneo.setFotoUrl(dto.getFotoUrl());
+//        torneo.setGenero(dto.getGenero());
+//        torneo.setRedSocial(dto.getRedSocial());
+//
+//        boolean esAdmin = auth.getAuthorities().stream()
+//                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+//
+//        // =========================
+//        // MANEJO ENCARGADO TORNEO
+//        // =========================
+//        if (esAdmin) {
+//
+//            String email = dto.getEncargadoEmail();
+//
+//            if (email == null || email.isBlank()) {
+//                torneo.setEncargado(null);
+//
+//            } else {
+//                Usuario encargado = usuarioRepository.findByEmail(email)
+//                        .orElseThrow(() ->
+//                                new RuntimeException("No existe usuario con ese email")
+//                        );
+//
+//
+//
+//                torneo.setEncargado(encargado);
+//            }
+//        }
+//        // 🔒 si NO es admin, se ignora encargadoEmail
+//
+//        Torneo actualizado = torneoRepository.save(torneo);
+//        return TorneoMapper.toDTO(actualizado);
+//    }
+@Caching(evict = {
+        @CacheEvict(value = "dashboardTorneos", allEntries = true),
+        @CacheEvict(value = "torneosActivos", allEntries = true),
+        @CacheEvict(value = "torneoDetalle", allEntries = true)
+})
+@Transactional
+public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
 
-    @Caching(evict = {
-            @CacheEvict(value = "dashboardTorneos", allEntries = true),
-            @CacheEvict(value = "torneosActivos", allEntries = true),
-            @CacheEvict(value = "torneoDetalle", allEntries = true)
-    })
-    public TorneoDTO modificarTorneo(Long id, TorneoDTO dto, Authentication auth) {
+    // 1. Buscamos el torneo existente
+    Torneo torneo = torneoRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
 
-        // 1. Buscamos el torneo existente
-        Torneo torneo = torneoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Torneo no encontrado"));
+    // 2. Validamos duplicados (Nombre + División + Vigente) EXCLUYENDO el ID actual
+    boolean existeOtroVigente;
+    String estadoActivoStr = "activo";
+    boolean noFinalizado = true;
 
-// 2. Validamos duplicados (Nombre + División) EXCLUYENDO el ID actual
-        boolean existeOtroActivo;
-
-        // Verificamos si el DTO trae una división real
-        if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
-            // CASO A: Tiene división. Buscamos duplicado excluyendo este ID
-            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndIdNot(
-                    dto.getNombre().trim(),
-                    dto.getDivision().trim(),
-                    "activo",
-                    id // <--- Importante: Pasamos el ID para excluirlo
-            );
-        } else {
-            // CASO B: No tiene división (es null). Buscamos duplicado excluyendo este ID
-            existeOtroActivo = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndIdNot(
-                    dto.getNombre().trim(),
-                    "activo",
-                    id // <--- Importante
-            );
-        }
-
-        if (existeOtroActivo) {
-            String errorMsg = "Ya existe otro torneo activo con el nombre '" + dto.getNombre() + "'";
-            if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
-                errorMsg += " en la división " + dto.getDivision();
-            }
-            throw new RuntimeException(errorMsg);
-        }
-
-// 3. Si pasa la validación, procedemos a actualizar
-        torneo.setNombre(dto.getNombre());
-        torneo.setDivision(dto.getDivision());
-
-        if (dto.getEstado() != null && !dto.getEstado().isBlank()){
-            torneo.setEstado(dto.getEstado());
-        }
-        if (dto.getTipo() != null) {
-            torneo.setTipo(dto.getTipo());
-        }
-
-        // === AGREGAR ESTO PARA PROCESAR LOS COLORES ===
-        torneo.setColorPrimario(dto.getColorPrimario());
-        torneo.setColorSecundario(dto.getColorSecundario());
-        torneo.setColorTextoPrimario(dto.getColorTextoPrimario());
-        torneo.setColorTextoSecundario(dto.getColorTextoSecundario());
-        torneo.setEstadoTorneo(dto.getEstadoTorneo());
-        torneo.setCampeon(dto.getCampeon());
-            torneo.setTelefono(dto.getTelefono());
-
-
-
-// ==============================================
-        // === AGREGAR ESTO ===
-        torneo.setFotoUrl(dto.getFotoUrl());
-        torneo.setGenero(dto.getGenero());
-        torneo.setRedSocial(dto.getRedSocial());
-
-        boolean esAdmin = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        // =========================
-        // MANEJO ENCARGADO TORNEO
-        // =========================
-        if (esAdmin) {
-
-            String email = dto.getEncargadoEmail();
-
-            if (email == null || email.isBlank()) {
-                torneo.setEncargado(null);
-
-            } else {
-                Usuario encargado = usuarioRepository.findByEmail(email)
-                        .orElseThrow(() ->
-                                new RuntimeException("No existe usuario con ese email")
-                        );
-
-
-
-                torneo.setEncargado(encargado);
-            }
-        }
-        // 🔒 si NO es admin, se ignora encargadoEmail
-
-        Torneo actualizado = torneoRepository.save(torneo);
-        return TorneoMapper.toDTO(actualizado);
+    if (dto.getDivision() != null && !dto.getDivision().trim().isEmpty()) {
+        // Buscamos si hay OTRO torneo con misma división que siga vigente (no finalizado)
+        existeOtroVigente = torneoRepository.existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndEstadoTorneoAndIdNot(
+                dto.getNombre().trim(),
+                dto.getDivision().trim(),
+                estadoActivoStr,
+                noFinalizado,
+                id
+        );
+    } else {
+        // Buscamos si hay OTRO torneo sin división que siga vigente
+        existeOtroVigente = torneoRepository.existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndEstadoTorneoAndIdNot(
+                dto.getNombre().trim(),
+                estadoActivoStr,
+                noFinalizado,
+                id
+        );
     }
 
+    if (existeOtroVigente) {
+        String errorMsg = "No se puede renombrar: ya existe otro torneo vigente con el nombre '" + dto.getNombre() + "'";
+        if (dto.getDivision() != null && !dto.getDivision().isEmpty()) {
+            errorMsg += " en la división " + dto.getDivision();
+        }
+        throw new RuntimeException(errorMsg);
+    }
+
+    // 3. Actualización de campos básicos
+    torneo.setNombre(dto.getNombre().trim());
+    torneo.setDivision(dto.getDivision() != null ? dto.getDivision().trim() : null);
+
+    if (dto.getEstado() != null && !dto.getEstado().isBlank()){
+        torneo.setEstado(dto.getEstado());
+    }
+    if (dto.getTipo() != null) {
+        torneo.setTipo(dto.getTipo());
+    }
+
+    // 4. Actualización de Atributos del Torneo
+    torneo.setEstadoTorneo(dto.getEstadoTorneo()); // El booleano que agregaste
+    torneo.setCampeon(dto.getCampeon());
+    torneo.setTelefono(dto.getTelefono());
+    torneo.setFotoUrl(dto.getFotoUrl());
+    torneo.setGenero(dto.getGenero());
+    torneo.setRedSocial(dto.getRedSocial());
+
+    // Colores
+    torneo.setColorPrimario(dto.getColorPrimario());
+    torneo.setColorSecundario(dto.getColorSecundario());
+    torneo.setColorTextoPrimario(dto.getColorTextoPrimario());
+    torneo.setColorTextoSecundario(dto.getColorTextoSecundario());
+
+    // 5. Manejo de Encargado (Solo Admin puede cambiarlo)
+    boolean esAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+    if (esAdmin) {
+        String email = dto.getEncargadoEmail();
+        if (email == null || email.isBlank()) {
+            torneo.setEncargado(null);
+        } else {
+            Usuario encargado = usuarioRepository.findByEmail(email.trim())
+                    .orElseThrow(() -> new RuntimeException("No existe usuario con el email: " + email));
+
+            // Opcional: Validar que el usuario tenga rol de encargado
+            if (!encargado.getRol().equals("ENCARGADOTORNEO") && !encargado.getRol().equals("ROLE_ADMIN")) {
+                throw new RuntimeException("El usuario asignado no tiene permisos de encargado");
+            }
+            torneo.setEncargado(encargado);
+        }
+    }
+
+    // 6. Actualizar el slug si el nombre cambió
+    String nuevoSlug = crearSlugSeguro(torneo.getNombre());
+    torneo.setSlug(nuevoSlug);
+
+    return TorneoMapper.toDTO(torneoRepository.save(torneo));
+}
 
     @Caching(evict = {
             @CacheEvict(value = "dashboardTorneos", allEntries = true),
