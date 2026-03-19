@@ -13,4 +13,5 @@ public class ZonaDTO {
     private List<PartidoDTO> partidos;
     private Long torneoId;
     private String torneoNombre;
+    private String torneoEscudo;
 }

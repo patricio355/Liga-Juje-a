@@ -14,6 +14,26 @@ public interface TorneoRepository extends JpaRepository<Torneo, Integer> {
 
     Optional<Torneo> findById(Long id);
 
+    // Para torneos con división
+    boolean existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndEstadoTorneo(
+            String nombre, String division, String estado, boolean estadoTorneo
+    );
+
+    // Para torneos sin división
+    boolean existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndEstadoTorneo(
+            String nombre, String estado, boolean estadoTorneo
+    );
+
+    // Para modificar con división
+    boolean existsByNombreIgnoreCaseAndDivisionAndEstadoIgnoreCaseAndEstadoTorneoAndIdNot(
+            String nombre, String division, String estado, boolean estadoTorneo, Long id
+    );
+
+    // Para modificar sin división
+    boolean existsByNombreIgnoreCaseAndDivisionIsNullAndEstadoIgnoreCaseAndEstadoTorneoAndIdNot(
+            String nombre, String estado, boolean estadoTorneo, Long id
+    );
+
 
     @Query("SELECT t FROM Torneo t LEFT JOIN FETCH t.encargado LEFT JOIN FETCH t.zonas WHERE t.id = :id")
     Optional<Torneo> findByIdOptimized(@Param("id") Long id);
